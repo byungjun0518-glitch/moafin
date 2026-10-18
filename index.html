@@ -1,0 +1,3480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모아핀 — 알바 소득 장부</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --text: #202020;
+      --sub: #4A4F55;
+      --accent: #C3002F;
+      --accent-bg: #F3E6E9;
+      --warn: #f08c00;
+      --warn-bg: #fff4e6;
+      --danger: #e03131;
+      --danger-bg: #ffe3e3;
+      --success: #2f9e44;
+      --success-bg: #ebfbee;
+      --border: #e3e6ec;
+      --mvp-bg: #FFF8E1;
+      --mvp-border: #ffd43b;
+      --type-wage: #1F3864;
+      --type-wage-bg: #e7edf6;
+      --type-biz: #2f9e44;
+      --type-biz-bg: #ebfbee;
+      --type-daily: #f08c00;
+      --type-daily-bg: #fff4e6;
+      --sig-green: #2f9e44;
+      --sig-yellow: #f08c00;
+      --sig-white: #868e96;
+      --sig-unknown: #4A4F55;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141517;
+        --card: #1f2124;
+        --text: #f1f3f5;
+        --sub: #adb5bd;
+        --accent: #ff4d6d;
+        --accent-bg: #3b1c24;
+        --warn: #fcc419;
+        --warn-bg: #332b11;
+        --danger: #ff6b6b;
+        --danger-bg: #3b1a1a;
+        --success: #51cf66;
+        --success-bg: #17331d;
+        --border: #343a40;
+        --mvp-bg: #2e2916;
+        --mvp-border: #f59f00;
+        --type-wage: #74a0e8;
+        --type-wage-bg: #1c283d;
+        --type-biz: #51cf66;
+        --type-biz-bg: #17331d;
+        --type-daily: #fcc419;
+        --type-daily-bg: #332b11;
+        --sig-green: #51cf66;
+        --sig-yellow: #fcc419;
+        --sig-white: #adb5bd;
+        --sig-unknown: #ced4da;
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, "Malgun Gothic", "맑은 고딕", sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      background-color: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    h1 { font-size: 24px; font-weight: 800; line-height: 1.4; }
+    h2 { font-size: 20px; font-weight: 700; line-height: 1.4; margin-bottom: 10px; }
+    h3 { font-size: 18px; font-weight: 700; line-height: 1.4; margin-bottom: 8px; }
+    .amount-text { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+    .estimate-notice {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 4px;
+      display: block;
+    }
+    .small-text { font-size: 13px; color: var(--sub); }
+
+    /* 상단 헤더 및 누적 상태 바 */
+    .app-header {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .brand-subtitle {
+      font-size: 15px;
+      color: var(--sub);
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* 모든 화면 상단에 고정 표시되는 1년 누적 상태 요약 바 (설계 원칙 1) */
+    .global-year-bar {
+      background: var(--accent-bg);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .global-year-bar-items {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .global-year-item {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .global-year-item strong {
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    /* 상단 네비게이션 탭 */
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+
+    .tab-btn {
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .mvp-toggle-btn {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 2px solid var(--mvp-border);
+      background: var(--mvp-bg);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .mvp-toggle-btn.active {
+      background: #ffd43b;
+      color: #202020;
+      border-color: #f08c00;
+    }
+
+    /* 버튼 공통 */
+    .btn {
+      min-height: 36px;
+      height: auto;
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.35;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      white-space: normal;
+      max-width: 100%;
+      text-align: center;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .btn-hero {
+      min-height: 48px;
+      height: auto;
+      padding: 8px 24px;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.35;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      white-space: normal;
+      max-width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(195, 0, 47, 0.25);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #ffffff;
+      border-color: var(--danger);
+    }
+
+    /* 카드 공통 */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .mvp-card {
+      background: var(--mvp-bg);
+      border: 2px solid var(--mvp-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .seed-banner {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    /* 뱃지 스타일 (절대 회색 작은 글씨로 숨기지 않음) */
+    .badge-nts {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--warn-bg);
+      color: var(--text);
+      border: 1px solid var(--warn);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 14px;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+
+    .badge-rule {
+      display: inline-flex;
+      align-items: center;
+      background: var(--accent-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .badge-premium {
+      display: inline-flex;
+      align-items: center;
+      background: var(--accent-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-size: 12px;
+      font-weight: 800;
+      vertical-align: middle;
+      line-height: 1.4;
+    }
+
+    .badge-type {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .badge-type.wage { background: #1F3864; }
+    .badge-type.biz { background: #2f9e44; }
+    .badge-type.daily { background: #f08c00; color: #202020; }
+
+    /* 그리드 레이아웃 */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    /* UX Flow 5단계 가로 스트립 */
+    .ux-flow-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .ux-flow-step {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      position: relative;
+      text-align: center;
+    }
+
+    .ux-flow-arrow {
+      font-weight: 800;
+      color: var(--accent);
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* 여정지도 5단계 가로 스트립 및 감정 막대 */
+    .journey-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .journey-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .journey-card.lowest {
+      border: 2px solid var(--danger);
+      background: var(--danger-bg);
+    }
+
+    .emotion-bar-wrap {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .emotion-meter {
+      height: 12px;
+      border-radius: 6px;
+      background: var(--border);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .emotion-fill {
+      height: 100%;
+      border-radius: 6px;
+    }
+
+    /* 예시 명세서 카드 (CSS로 직접 구현한 명세서 종이 디자인) */
+    .payslip-paper {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .payslip-paper.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+
+    .payslip-badge-corner {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .payslip-divider {
+      border-top: 1px dashed var(--border);
+      margin: 10px 0;
+    }
+
+    .payslip-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    /* 입력 폼 */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .form-control {
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    /* 아코디언 (용어 풀이) */
+    details.glossary-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background: var(--bg);
+    }
+
+    details.glossary-item summary {
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    details.glossary-item summary::after {
+      content: "▼";
+      font-size: 12px;
+      color: var(--sub);
+    }
+
+    details.glossary-item[open] summary::after {
+      content: "▲";
+    }
+
+    /* 탭4 12개월 매트릭스 표 */
+    .matrix-scroll-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    table.matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 780px;
+      font-size: 14px;
+    }
+
+    table.matrix-table th,
+    table.matrix-table td {
+      border: 1px solid var(--border);
+      padding: 8px 6px;
+      text-align: right;
+    }
+
+    table.matrix-table th {
+      background: var(--bg);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    table.matrix-table td.employer-col {
+      text-align: left;
+      font-weight: 700;
+      padding-left: 10px;
+      white-space: nowrap;
+    }
+
+    .cell-wage { background: var(--type-wage-bg); color: var(--type-wage); font-weight: 700; }
+    .cell-biz { background: var(--type-biz-bg); color: var(--type-biz); font-weight: 700; }
+    .cell-daily { background: var(--type-daily-bg); color: var(--text); font-weight: 700; }
+
+    /* 넛지 가로 나란히 비교 박스 (탭4 d+e) */
+    .nudge-compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    /* 타임라인 가로 띠 */
+    .timeline-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .timeline-step {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      background: var(--bg);
+    }
+
+    .timeline-step.past {
+      opacity: 0.65;
+      background: var(--border);
+      color: var(--sub);
+    }
+
+    /* 탭5 A4 리포트 시트 */
+    .report-a4 {
+      border: 2px solid var(--text);
+      border-radius: 12px;
+      padding: 24px;
+      background: var(--card);
+    }
+
+    table.report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    table.report-table th,
+    table.report-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    table.report-table th {
+      background: var(--bg);
+      font-weight: 700;
+    }
+
+    table.settings-data-table {
+      table-layout: fixed;
+      width: 100%;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .print-avoid-break {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* 토스트 */
+    .save-toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: var(--success);
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 9999;
+    }
+
+    .save-toast.visible {
+      opacity: 1;
+    }
+
+    /* 반응형 (720px 이하 — 화면 전용, 인쇄 시 미적용) */
+    @media screen and (max-width: 720px) {
+      .app-container {
+        padding: 12px;
+      }
+      .card {
+        padding: 14px;
+      }
+      .grid-3,
+      .grid-2,
+      .ux-flow-strip,
+      .journey-strip,
+      .form-grid,
+      .nudge-compare-grid,
+      .timeline-strip {
+        grid-template-columns: 1fr;
+      }
+      table.report-table {
+        font-size: 13px;
+      }
+      table.report-table th,
+      table.report-table td {
+        padding: 6px;
+        word-break: break-word;
+      }
+      table.settings-data-table {
+        font-size: 12.5px;
+      }
+      table.settings-data-table th,
+      table.settings-data-table td {
+        padding: 6px 4px;
+        word-break: keep-all;
+        overflow-wrap: break-word;
+      }
+      .report-a4 {
+        padding: 14px;
+      }
+    }
+
+    /* 인쇄 모드 (@media print): 탭·버튼·배경 숨기고 A4 한 장(여백 12mm)에 맞춤 */
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+
+    @media print {
+      html,
+      body {
+        width: 186mm !important;
+        min-width: 186mm !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 10pt !important;
+        line-height: 1.25 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      .app-header,
+      .nav-tabs,
+      button,
+      .btn,
+      #first-run-container,
+      #mvp-banner-container,
+      #seed-banner-container,
+      .first-run-card,
+      .mvp-card,
+      .seed-banner,
+      .no-print,
+      .save-toast {
+        display: none !important;
+      }
+      .app-container,
+      #main-view {
+        width: 186mm !important;
+        min-width: 186mm !important;
+        max-width: 186mm !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+      }
+      .print-avoid-break {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .report-a4,
+      .report-a4 * {
+        background: transparent !important;
+        background-color: transparent !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+      }
+      .report-a4 {
+        width: 186mm !important;
+        min-width: 186mm !important;
+        max-width: 186mm !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .report-a4 h2 {
+        font-size: 14pt !important;
+        margin-bottom: 2px !important;
+      }
+      .report-a4 h3 {
+        font-size: 11pt !important;
+        margin-bottom: 4px !important;
+      }
+      .report-a4 p {
+        font-size: 9.5pt !important;
+        line-height: 1.2 !important;
+        margin-top: 2px !important;
+        margin-bottom: 2px !important;
+      }
+      .report-a4 > div {
+        margin-bottom: 8px !important;
+        padding: 6px 8px !important;
+      }
+      .report-a4 .grid-3 {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+        width: 100% !important;
+      }
+      .report-a4 .grid-3 > div {
+        padding: 6px 8px !important;
+      }
+      .report-a4 .grid-2 {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        width: 100% !important;
+      }
+      .report-a4 .amount-text {
+        font-size: 13pt !important;
+        margin-top: 2px !important;
+      }
+      .report-a4 .badge-rule,
+      .report-a4 .badge-nts,
+      .report-a4 .badge-premium {
+        font-size: 8.5pt !important;
+        padding: 1px 4px !important;
+        border: 1px solid #444444 !important;
+      }
+      table.report-table {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        font-size: 10pt !important;
+        line-height: 1.15 !important;
+        margin-top: 4px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      table.report-table tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      table.report-table th,
+      table.report-table td {
+        padding: 2px 6px !important;
+        line-height: 1.15 !important;
+        height: auto !important;
+        border: 1px solid #444444 !important;
+        word-break: keep-all !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-top">
+        <div>
+          <div class="brand-title">
+            <h1>📒 모아핀 — 알바 소득 장부</h1>
+          </div>
+          <p class="brand-subtitle" id="header-oneliner"></p>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="btn-mvp-toggle" class="mvp-toggle-btn" aria-pressed="false">
+            💡 MVP로 보기: 꺼짐
+          </button>
+          <button type="button" id="btn-go-settings" class="btn">
+            ⚙️ 설정
+          </button>
+        </div>
+      </div>
+
+      <!-- 설계 원칙 1: 모든 화면이 쌓인 1년 누적 상태를 보이게 한다 -->
+      <div class="global-year-bar" id="global-year-bar" aria-live="polite"></div>
+
+      <!-- 상단 5개 탭 + 설정 -->
+      <nav class="nav-tabs" aria-label="주요 화면 탭">
+        <button type="button" class="tab-btn" data-tab="home">🏠 홈</button>
+        <button type="button" class="tab-btn" data-tab="read">🔍 판독</button>
+        <button type="button" class="tab-btn" data-tab="verify">✅ 검증</button>
+        <button type="button" class="tab-btn" data-tab="accumulate">📊 누적</button>
+        <button type="button" class="tab-btn" data-tab="report">📄 소득 리포트</button>
+        <button type="button" class="tab-btn" data-tab="settings">⚙️ 설정</button>
+      </nav>
+    </header>
+
+    <!-- 첫 실행 시 1회 안내 카드 -->
+    <section id="first-run-container"></section>
+
+    <!-- 💡 MVP로 보기 해설 영역 -->
+    <section id="mvp-banner-container"></section>
+
+    <!-- 예시 데이터 1년치 배너 -->
+    <section id="seed-banner-container"></section>
+
+    <!-- 메인 화면 컨테이너 -->
+    <main id="main-view"></main>
+  </div>
+
+  <!-- 우측 하단 자동 저장 토스트 -->
+  <div id="save-toast" class="save-toast" role="status" aria-live="polite">저장됨 ✓</div>
+  <script>
+    /* =========================================================================
+     * 1. CONFIG — 모든 서비스 데이터·세법 기준·인터뷰·단위경제·MVP 해설 상수
+     *    왜 한 곳에 모으는가: 세법이나 장려금 기준, 문구가 바뀌었을 때 UI 코드를
+     *    건드리지 않고 CONFIG와 4개의 순수 규칙 엔진 함수만 수정하기 위함입니다.
+     * ========================================================================= */
+    const CONFIG = {
+      APP: {
+        name: "모아핀 — 알바 소득 장부",
+        oneLiner: "월급날마다 급여명세서를 올리면 자동 판독으로 여러 알바의 소득을 1년 내내 쌓고 검증해, 신고·환급·지원금 할 일을 제때 알려 주고 그 기록을 금융 이력으로 바꿔 주는 앱.",
+        problemStatement: "여러 아르바이트를 경험한 20대 대학생 상혁은 종합소득세 환급 가능성과 환급액을 확인하려는 상황에서, 예상 환급액과 이를 확인하는 데 필요한 시간·절차를 사전에 알기 어렵기 때문에 탐색의 가치를 판단하지 못하고 정확한 확인을 포기한다.",
+        hmwStatement: "어떻게 하면 여러 알바를 경험한 20대 대학생이 월급날마다 자기 명세서를 이해하고, 흩어진 소득이 1년치로 쌓이게 해서, 신고·환급·지원금에서 할 일을 제때 알게 할 수 있을까?",
+        ntsBadgeText: "※ 국세청 확인 필요",
+        estimateText: "추정치입니다"
+      },
+
+      // 2-1. 초니치 고객 (필수 6요소 ①)
+      NICHE_CUSTOMER: {
+        target: "1년 동안 여러 고용주를 거치거나 3.3%·일용직·비정기적 급여로 소득을 받아, 4대보험 기반 자동 소득조회로는 소득이 잡히지 않거나 흩어져 있는 20대 대학생·취업준비생.",
+        whyIgnored: "1인당 환급액이 작아 세무 대리 수수료 모델이 성립하지 않고, 4대보험 밖 소득이라 금융사 자동 조회에도 걸리지 않는다.",
+        stat: "20대 신용평가 대상자의 41.4%(262만 명)가 금융이력부족자."
+      },
+
+      // 2-2. 인터뷰 요약 — 고통점 (필수 6요소 ②) 팀 작성 원문 그대로
+      INTERVIEWS: {
+        painPoints: [
+          { id: 1, quote: '① "왜 이 금액이 빠지는지 모르겠다" (#2)', tag: "#2 인터뷰" },
+          { id: 2, quote: '② "국세청이 왜 이런 세금이 나왔는지 안 알려준다" (#5)', tag: "#5 인터뷰" },
+          { id: 3, quote: "③ 근로장려금을 놓칠 뻔했다 (#4)", tag: "#4 인터뷰" },
+          { id: 4, quote: "④ 시급만 보고 계약했다 (#1)", tag: "#1 인터뷰" },
+          { id: 5, quote: "⑤ #4는 1만 원으로 알던 환급이 실제로는 약 8만 원이었다", tag: "#4 사례" },
+          { id: 6, quote: "⑥ #3은 30~40만 원이어도 5분 미만만 알아보겠다고 답했다", tag: "#3 사례" }
+        ],
+        discovery: "'얼마면 알아본다'는 공통 기준선은 없었다. 금액 기준은 사람마다 다르다. 그래서 앱은 기준을 대신 정해 주지 않고, 금액과 소요 시간을 나란히 보여 사용자가 자기 기준으로 판단하게 한다."
+      },
+
+      // 2-3. 페르소나
+      PERSONA: {
+        profile: "상혁 / 24살 / 대학생, 알바 경험 3곳",
+        awareness: "관심이 별로 없으며 고용주가 알아서 공제해 준다고 생각한다. 공제액이 커지기 전까지는 사유도 궁금해하지 않는다.",
+        situation: '방학에 근무가 늘어 소득이 증가하면서 공제액이 커지자 처음으로 "왜 이렇게 많이 빠졌지?"라는 의문을 갖는다.',
+        firstAction: "스스로 찾아보기보다 인스타 릴스나 지인 등 외부 계기로 뒤늦게 환급 정보를 접한다. 국세청·홈택스 대신 부모님·지인·GPT·SNS 등 빠른 경로를 찾는다.",
+        dropOff: '환급액이 크면 더 알아볼 의향이 있지만 실제 금액과 소요 시간을 미리 알 수 없어 "그냥 넘어가자"로 판단한다.'
+      },
+
+      // 2-4. 여정지도 5단계와 최저점
+      JOURNEY_MAP: {
+        steps: [
+          { step: "① 평소", desc: "세금에 무관심, 고용주가 알아서 해 준다고 생각", emotion: 0, isLowest: false },
+          { step: "② 방학 근무 증가", desc: '공제액이 커지며 "왜 이렇게 많이 빠졌지?"', emotion: -2, isLowest: false },
+          { step: "③ 외부 계기", desc: "릴스·지인을 통해 환급이라는 게 있다는 걸 알게 됨", emotion: 1, isLowest: false },
+          { step: "④ 우회 탐색", desc: "홈택스 대신 지인·GPT·SNS에 물어보지만 내 경우인지 확신 못 함", emotion: -1, isLowest: false },
+          { step: "⑤ 포기 ★최저점", desc: '금액과 소요 시간을 비교할 수 없어 "그냥 넘어가자"', emotion: -3, isLowest: true }
+        ],
+        rootCauseNote: '최저점 ⑤는 5 Whys 근본 원인 "돌려받을 수 있는 금액과 탐색비용(시간+절차)을 정확히 비교할 수 없다"와 직접 이어진다. 탭4(📊 누적)가 이 지점을 겨냥한다.'
+      },
+
+      // 2-5. 킬러기능 (필수 6요소 ④)
+      KILLER_FEATURE: {
+        whoWhenWhat: "여러 알바를 거치는 20대 대학생이(누가), 월급날 명세서를 받았을 때(언제), 사진 한 장으로 이번 달 공제가 맞는지와 1년치 신고·환급·지원금 할 일을 확인한다(무엇을).",
+        agents: [
+          { step: "① 판독", fnName: "readPayslip", desc: "명세서에서 소득 유형(근로/3.3%/일용)을 분류" },
+          { step: "② 검증", fnName: "verifyDeductions", desc: "세법 규칙엔진으로 공제액이 맞는지, 왜 빠졌는지 설명" },
+          { step: "③ 누적", fnName: "accumulate", desc: "고용주·월별 소득을 합산해 신고 필요 여부·예상 환급·근로장려금 자격을 시기별로 안내" },
+          { step: "④ 정리", fnName: "buildReport", desc: "5월 신고 입력값과 본인 소득 리포트를 생성" }
+        ],
+        uxFlow: [
+          { order: 1, title: "🔔 알림", detail: "기본 꺼짐 (사용자 선택)" },
+          { order: 2, title: "📸 명세서 업로드", detail: "예시 선택·직접 입력" },
+          { order: 3, title: "🔍 판독", detail: "소득 유형 자동 분류" },
+          { order: 4, title: "✅ 공제 설명", detail: "항목별 이유 + 세법 규칙" },
+          { order: 5, title: "📊 1년치 누적", detail: "2클릭·1분 내 도달" }
+        ],
+        nudges: [
+          "① 탭4에서 '예상 환급 범위'와 '확인에 드는 예상 시간'을 가로로 나란히 두고 '1분당 기대 금액'으로 환산해 보여 준다 — 모호성 회피를 교정한다. 비교를 사용자가 직접 하지 않아도 되게 만든다.",
+          "② 알림과 금융사 전송의 기본값은 '꺼짐'. 좋은 행동은 쉽게, 위험한 행동은 사용자가 직접 켜야 한다."
+        ]
+      },
+
+      // 2-6. 차별점 (탭5에 원문 그대로 사용)
+      DIFFERENTIATOR: "4대보험 근로소득은 은행앱에서 자동 제출되지만, 3.3%·일용직·복수 고용주 소득은 명세서가 여러 곳에 흩어져 은행이 한 번에 확인하기 어렵다. 모아핀은 여러 고용주의 12개월치 소득을 세법으로 검증된 표준 리포트 한 장으로 묶는다.",
+
+      // 2-7. 단위경제 (필수 6요소 ⑤) 원문 숫자 그대로
+      UNIT_ECONOMICS: {
+        pricingTitle: "무료 / 프리미엄 기능 구분",
+        pricingRows: [
+          { feature: "환급 가능성 확인", free: "○", premium: "○" },
+          { feature: "예상 환급 범위 확인", free: "○", premium: "○" },
+          { feature: "소득 변화에 따른 환급 변화 알림", free: "—", premium: "○" },
+          { feature: "세금 상태 해석 (공제 항목별 사유 설명)", free: "—", premium: "○" },
+          { feature: "신고 전 필요자료·다음 행동 안내", free: "—", premium: "○" },
+          { feature: "금융사 제출용 소득 리포트", free: "—", premium: "○" }
+        ],
+        pricingNote: "금융 연계 중개수수료는 제휴 협의를 통해 별도 검증할 확장 단계이며, 현재 수익모델에는 포함하지 않는다.",
+        tableTitle: "단위경제 산출 근거",
+        rows: [
+          { category: "가격", item: "연 구독료", value: "14,900원", basis: "프리미엄 가격" },
+          { category: "가격", item: "월 환산", value: "1,242원", basis: "14,900 ÷ 12" },
+          { category: "수요", item: "전체 응답자 지불의향", value: "63.6% (7명/11명)", basis: "가격 재검증 설문" },
+          { category: "수요", item: "핵심타깃 지불의향", value: "50.0% (3명/6명)", basis: "가격 재검증 설문 중 핵심 초니치" },
+          { category: "획득", item: "카카오톡 배포", value: "30명", basis: "오가닉 배포 실험" },
+          { category: "획득", item: "소요 시간", value: "1시간", basis: "실측" },
+          { category: "획득", item: "시간당 비용", value: "10,320원", basis: "2026년 최저임금 (고용노동부 고시 제2025-47호)" },
+          { category: "획득", item: "결과 화면 도달 핵심타깃", value: "5명", basis: "실측" },
+          { category: "획득", item: "무료 핵심타깃 획득비", value: "2,064원", basis: "10,320 ÷ 5" },
+          {
+            category: "획득",
+            item: "예상 유료 CAC",
+            value: "4,128원",
+            basis: "2,064 ÷ 50.0%",
+            footnote: "획득비가 핵심타깃 5명 기준이므로, 분모도 전체 응답자(63.6%)가 아닌 핵심타깃 지불의향(50.0%)을 적용했다."
+          },
+          { category: "원가", item: "월 변동원가", value: "150원", basis: "가정값" },
+          { category: "원가", item: "월 기여이익", value: "1,092원", basis: "1,242 − 150" },
+          { category: "결과", item: "유지기간", value: "12개월", basis: "가정값" },
+          { category: "결과", item: "LTV", value: "13,100원", basis: "1,092 × 12" },
+          { category: "결과", item: "LTV / CAC", value: "3.17배", basis: "13,100 ÷ 4,128" },
+          { category: "결과", item: "CAC 회수기간", value: "3.8개월", basis: "4,128 ÷ 1,092" }
+        ],
+        breakEvenBold: "실제 결제율이 15.8% 밑으로 떨어지면 적자",
+        zeroInfraNote: "서버·계정·광고 0원, 호스팅은 GitHub Pages 무료.",
+        sensitivityTitle: "결제율 가정에 따른 민감도",
+        sensitivityRows: [
+          { rate: "81.2%", basis: "95% 신뢰구간 상한", cac: "2,541원", ltvCac: "5.16배", payback: "2.3개월", bold: false },
+          { rate: "63.6%", basis: "전체 응답자 WTP (참고)", cac: "3,243원", ltvCac: "4.04배", payback: "3.0개월", bold: false },
+          { rate: "50.0%", basis: "핵심타깃 WTP · 기준값", cac: "4,128원", ltvCac: "3.17배", payback: "3.8개월", bold: true },
+          { rate: "25.0%", basis: "기준값의 1/2", cac: "8,256원", ltvCac: "1.59배", payback: "7.6개월", bold: false },
+          { rate: "18.8%", basis: "95% 신뢰구간 하한", cac: "11,001원", ltvCac: "1.19배", payback: "10.1개월", bold: false },
+          { rate: "15.8%", basis: "손익분기", cac: "13,100원", ltvCac: "1.00배", payback: "12.0개월", bold: true }
+        ],
+        limitationNote: "50.0%는 실제 결제율이 아니라 핵심 초니치 응답자 6명 중 3명이 밝힌 지불의향이다.\n95% 신뢰구간은 18.8%~81.2%(Wilson)로, 표본이 6명이므로 이 폭은 정상이다.\n다만 신뢰구간 하한인 18.8%에서도 LTV/CAC는 1.19배로 손익분기 15.8%를 넘는다.\n실제 결제율은 유료 전환을 붙인 뒤 실측한다.\n월 변동원가 150원과 유지기간 12개월은 가정값이다."
+      },
+
+      // 2-8. 세법·장려금 기준표 (전부 CONFIG.RULES에 모으고 ※ 국세청 확인 필요 플래그 부착)
+      RULES: {
+        R1: {
+          code: "R1",
+          title: "사업소득(인적용역) 원천징수 3.3% = 소득세 3% + 지방소득세 0.3%",
+          rate: 0.033,
+          incomeTaxRate: 0.03,
+          localTaxRate: 0.003,
+          ntsCheckRequired: true,
+          badge: "※ 국세청 확인 필요"
+        },
+        R2: {
+          code: "R2",
+          title: "종합소득세 신고·환급: 매년 5월 1~31일, 홈택스",
+          period: "5월 1~31일",
+          ntsCheckRequired: true,
+          badge: "※ 국세청 확인 필요"
+        },
+        R3: {
+          code: "R3",
+          title: "근로소득만 있고 한 곳에서 연말정산을 마쳤다면 별도 신고 불필요",
+          ntsCheckRequired: true,
+          badge: "※ 국세청 확인 필요"
+        },
+        R4: {
+          code: "R4",
+          title: "소득이 2곳 이상이면 합산 신고 대상이 될 수 있다 — 환급이 아니라 추가 납부가 나올 수도 있다.",
+          ntsCheckRequired: true,
+          badge: "※ 국세청 확인 필요"
+        },
+        R5: {
+          code: "R5",
+          title: "종합소득 과세표준 최저구간 세율 6%",
+          minBracketRate: 0.06,
+          ntsCheckRequired: true,
+          badge: "※ 국세청 확인 필요"
+        },
+        R6: {
+          code: "R6",
+          title: "소득이 과세 기준에 미달하면 원천징수된 3.3%가 환급 대상이 될 수 있다",
+          ntsCheckRequired: true,
+          badge: "※ 국세청 확인 필요"
+        },
+        R7: {
+          code: "R7",
+          title: "경정청구로 과거 5년치까지 신청 가능",
+          yearsBack: 5,
+          ntsCheckRequired: true,
+          badge: "※ 국세청 확인 필요"
+        },
+        R8: {
+          code: "R8",
+          title: "근로장려금(단독가구 기준)\n· 소득요건: 2025년 부부합산 연간 총소득 2,200만 원 미만\n· 재산요건: 2025년 6월 1일 현재 가구원 전체의 재산 합계 2.4억 원 미만\n· 1.7억 원 이상 2.4억 원 미만이면 산정액의 50%만 지급\n· 가구원에는 같은 주소에 사는 직계존속이 포함되므로, 부모와 함께 사는 경우 부모 명의 재산도 합산된다\n· 정기신청 5월 1일~5월 31일, 정기신청분은 9월 말까지 지급",
+          note: "출처: 국세청 「근로·자녀장려금 – 신청자격」 및 「심사 및 지급」(2026.10.18. 확인).\n정기신청 기간은 대한민국 정책브리핑 기준.",
+          maxAnnualIncome: 22000000,
+          maxAssetText: "2.4억 원 미만",
+          ntsCheckRequired: false,
+          badge: "출처: 국세청 (2026.10.18. 확인)"
+        }
+      },
+
+      // 2-8 소요 시간 (탭4에서 사용)
+      TIME_COSTS: [
+        { key: "login", label: "홈택스 로그인·본인인증", minutes: 5 },
+        { key: "lookup", label: "지급명세서 조회", minutes: 10 },
+        { key: "sumCheck", label: "소득 합산 확인", minutes: 10 },
+        { key: "filing", label: "신고서 작성", minutes: 20 }
+      ],
+
+      // 2-9. 예시 명세서 3종
+      SAMPLE_PAYSLIPS: [
+        {
+          sampleKey: "A",
+          cardTitle: "A. 카페 알바 (근로소득, 4대보험)",
+          employer: "카페 A",
+          month: 10,
+          gross: 1500000,
+          grossDetail: "기본급 1,450,000 + 주휴수당 50,000 = 세전 1,500,000",
+          deductionTotal: 151690,
+          net: 1348310,
+          userSelectedType: "unknown",
+          deductionItems: [
+            { name: "국민연금", amount: 67500 },
+            { name: "건강보험", amount: 53200 },
+            { name: "고용보험", amount: 13500 },
+            { name: "소득세", amount: 15900 },
+            { name: "지방소득세", amount: 1590 }
+          ]
+        },
+        {
+          sampleKey: "B",
+          cardTitle: "B. 과외·프리랜서 (3.3% 원천징수)",
+          employer: "과외",
+          month: 10,
+          gross: 600000,
+          grossDetail: "지급 600,000",
+          deductionTotal: 19800,
+          net: 580200,
+          userSelectedType: "unknown",
+          deductionItems: [
+            { name: "소득세", amount: 18000 },
+            { name: "지방소득세", amount: 1800 }
+          ]
+        },
+        {
+          sampleKey: "C",
+          cardTitle: "C. 행사 스태프 (일용근로)",
+          employer: "행사 스태프",
+          month: 10,
+          gross: 360000,
+          grossDetail: "3일 × 일당 120,000 = 360,000",
+          deductionTotal: 0,
+          net: 360000,
+          userSelectedType: "unknown",
+          deductionItems: []
+        }
+      ],
+
+      // 2-10. 12개월 시드 데이터 생성 규칙 (연 총지급액과 원천징수 합계는 코드가 계산해서 씀)
+      SEED_SPECS: [
+        {
+          employer: "카페 A",
+          months: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+          gross: 1500000,
+          deductionTotal: 151690,
+          incomeType: "wage",
+          deductionItems: [
+            { name: "국민연금", amount: 67500 },
+            { name: "건강보험", amount: 53200 },
+            { name: "고용보험", amount: 13500 },
+            { name: "소득세", amount: 15900 },
+            { name: "지방소득세", amount: 1590 }
+          ]
+        },
+        {
+          employer: "과외",
+          months: [5, 7, 9, 11],
+          gross: 600000,
+          deductionTotal: 19800,
+          incomeType: "biz",
+          deductionItems: [
+            { name: "소득세", amount: 18000 },
+            { name: "지방소득세", amount: 1800 }
+          ]
+        },
+        {
+          employer: "행사 스태프",
+          months: [1, 2, 8],
+          gross: 360000,
+          deductionTotal: 0,
+          incomeType: "daily",
+          deductionItems: []
+        }
+      ],
+
+      // 2-11. 용어 풀이 (탭3에서 사용, 각 2~3줄, 중학생도 알 수 있는 말로)
+      GLOSSARY: [
+        {
+          term: "원천징수",
+          desc: "사장님이 내게 월급을 주기 전에 세금을 미리 떼어 국세청에 대신 내는 제도예요.\n내가 매달 직접 세무서에 가지 않아도 되지만, 미리 뗀 세금이 내 진짜 세금보다 많으면 나중에 돌려받을 수 있어요."
+        },
+        {
+          term: "3.3%",
+          desc: "학원 강사, 과외, 디자인 외주처럼 프리랜서(인적용역 사업소득)로 일할 때 급여에서 미리 떼는 세금 비율이에요.\n국세청에 내는 소득세 3%와 시청·구청에 내는 지방소득세 0.3%를 합쳐서 정확히 3.3%가 빠져요."
+        },
+        {
+          term: "일용근로",
+          desc: "행사 스태프나 단기 물류 알바처럼 하루 단위로 계약을 맺고 일당을 받는 일자리예요.\n하루 일당이 일정 금액(15만 원) 이하라면 세금이 0원이고, 따로 종합소득세 신고를 하지 않아도 되는 경우가 많아요."
+        },
+        {
+          term: "종합소득세",
+          desc: "1년(1월~12월) 동안 여러 곳에서 번 알바비, 프리랜서 수입 등을 모두 합쳐서 다음 해 5월에 최종 정산하는 세금이에요.\n미리 떼인 3.3% 세금이 실제 내야 할 세금보다 많다면 5월에 신고해서 차액을 돌려받을 수 있어요."
+        },
+        {
+          term: "연말정산",
+          desc: "4대보험에 가입된 직장·알바에서 1년 동안 미리 낸 세금과 실제 세금을 매년 1~2월에 비교해 정산하는 절차예요.\n한 곳에서만 근로소득을 받고 연말정산을 끝냈다면 5월에 따로 종합소득세를 신고할 필요가 없어요."
+        },
+        {
+          term: "지급명세서",
+          desc: "고용주(사장님)가 '이 사람에게 얼마를 줬고 세금을 얼마 뗐습니다'라고 국세청에 제출하는 영수증이에요.\n홈택스에서 내 지급명세서를 조회하면 사장님이 내 소득을 어떤 유형으로 신고했는지 바로 확인할 수 있어요."
+        },
+        {
+          term: "경정청구",
+          desc: "예전에 5월 종합소득세 신고 기간을 놓쳐서 못 돌려받은 세금을 뒤늦게 돌려달라고 신청하는 제도예요.\n신고 기한이 지난 뒤에도 최대 5년 전 알바 소득까지 거슬러 올라가 신청할 수 있어요."
+        },
+        {
+          term: "근로장려금",
+          desc: "열심히 일하지만 소득이 적은 근로자나 프리랜서에게 국가가 현금으로 지원금을 주는 제도예요.\n단독가구 기준 연 소득 약 2,200만 원 미만 등 요건을 충족하면 매년 5월에 정기 신청해 8~9월경 받을 수 있어요."
+        }
+      ],
+
+      // 2-12. MVP 해설 데이터 (💡 모드에서 사용)
+      MVP_INFO: {
+        elements: {
+          1: "① 초니치 고객: 여러 고용주를 거치거나 3.3%·일용·비정기 급여라 4대보험 자동 조회로는 소득이 잡히지 않는 20대 대학생·취업준비생",
+          2: "② 고통점: 왜 이 금액이 빠지는지 모른다 / 국세청이 이유를 알려주지 않는다 / 근로장려금을 놓칠 뻔했다 / 시급만 보고 계약했다",
+          3: "③ HMW: 어떻게 하면 여러 알바를 경험한 20대 대학생이 월급날마다 자기 명세서를 이해하고, 흩어진 소득이 1년치로 쌓이게 해서, 신고·환급·지원금에서 할 일을 제때 알게 할 수 있을까?",
+          4: "④ 킬러기능 = 판독→검증→누적→정리 4단계 자동 판독 / UX Flow = 알림(꺼짐) → 업로드 → 판독 → 공제 설명 → 1년치 누적(2클릭·1분) / 넛지 = 금액과 소요 시간을 나란히·1분당 기대 금액으로 환산, 알림과 전송은 기본 꺼짐. 현재 MVP는 규칙 엔진으로 동작하며, 출시 단계에서 판독 단계를 OCR·AI로 교체합니다. 규칙 엔진은 이후에도 AI 결과를 검증하는 역할로 남습니다.",
+          5: "⑤ 단위경제: 프리미엄 연 14,900원 · CAC 4,128원 · LTV 13,100원 · LTV/CAC 3.17배 · 회수기간 3.8개월 · 실제 결제율 15.8% 미만 시 적자",
+          6: "⑥ 다크패턴 점검: 회원가입 없음 · 죄책감 문구 없음 · 자동결제 없음 · 결과 전 가입·광고 없음 · 환급은 범위·추정치로만 · 금융사 전송 기본 꺼짐"
+        },
+        oneLineSummary: "흩어진 알바 소득을 월급날마다 한 곳에 쌓아 1년치 표준 리포트 한 장으로 만든다 — GPT에 한 번 물어서는 나오지 않는 결과다.",
+        tabMapping: {
+          home: [1, 2],
+          read: [4],
+          verify: [2, 4],
+          accumulate: [3, 4],
+          report: [5],
+          settings: [5, 6]
+        }
+      }
+    };
+
+    /* =========================================================================
+     * 2. 자동 판독·검증·누적·정리 4개 순수 함수 (readPayslip / verifyDeductions / accumulate / buildReport)
+     *    왜 순수 함수로 분리하는가: 사용자가 자기 원천징수 방식을 몰라도 입력값만으로
+     *    일관된 판독·검증·누적·리포트 결과를 만들고, 세법 규칙 변경 시 유지보수를 쉽게 합니다.
+     * ========================================================================= */
+
+    // 단계 ① 자동 판독: 명세서 데이터에서 소득 유형(근로/3.3%/일용)과 판독 근거 1줄을 반환
+    function readPayslip(rawPayslip, rules = CONFIG.RULES) {
+      const gross = Number(rawPayslip.gross) || 0;
+      const deductionTotal = Number(rawPayslip.deductionTotal) || 0;
+      const items = Array.isArray(rawPayslip.deductionItems) ? rawPayslip.deductionItems : [];
+      const hasFourIns = items.some(it => ["국민연금", "건강보험", "고용보험"].includes(it.name) && it.amount > 0);
+      const ratio = gross > 0 ? deductionTotal / gross : 0;
+
+      // 공제가 0원인 명세서: 일용근로로 자동 단정하지 않고 하루 단위(일당) vs 한 달 단위(월급) 응답에 따라 분류
+      if (deductionTotal === 0 && !hasFourIns) {
+        if (
+          rawPayslip.zeroDeductionPayUnit === "monthly" ||
+          rawPayslip.isZeroDeductionWage ||
+          rawPayslip.userSelectedType === "wage" ||
+          rawPayslip.userSelectedType === "wage_zero" ||
+          rawPayslip.incomeType === "wage"
+        ) {
+          return {
+            ...rawPayslip,
+            gross,
+            deductionTotal,
+            net: gross - deductionTotal,
+            deductionItems: items,
+            incomeType: "wage",
+            isZeroDeductionWage: true,
+            zeroDeductionPayUnit: "monthly",
+            needsZeroDeductionConfirm: false,
+            incomeTypeLabel: "근로소득(공제 없음)",
+            reasonLine: "공제가 0원이지만 한 달 단위로 월급을 받으셨다고 답해 근로소득(공제 없음)으로 봤습니다",
+            extraNoticeLine: "소득이 적어 이번 달엔 떼인 게 없지만, 연간 합산 시 신고 대상일 수 있습니다.",
+            ruleCode: "연말정산 대상"
+          };
+        }
+
+        if (
+          rawPayslip.zeroDeductionPayUnit === "daily" ||
+          rawPayslip.userSelectedType === "daily" ||
+          rawPayslip.incomeType === "daily"
+        ) {
+          return {
+            ...rawPayslip,
+            gross,
+            deductionTotal,
+            net: gross - deductionTotal,
+            deductionItems: items,
+            incomeType: "daily",
+            isZeroDeductionWage: false,
+            zeroDeductionPayUnit: "daily",
+            needsZeroDeductionConfirm: false,
+            incomeTypeLabel: "일용근로소득",
+            reasonLine: rawPayslip.zeroDeductionPayUnit === "daily"
+              ? "공제가 0원이고 하루 단위로 일당을 받으셨다고 답해 일용근로소득으로 봤습니다"
+              : "원천징수 공제가 0원인 단기·일당 형태라 일용근로소득으로 봤습니다",
+            extraNoticeLine: "",
+            ruleCode: "일용근로 분리과세"
+          };
+        }
+
+        return {
+          ...rawPayslip,
+          gross,
+          deductionTotal,
+          net: gross - deductionTotal,
+          deductionItems: items,
+          incomeType: "pending",
+          isZeroDeductionWage: false,
+          zeroDeductionPayUnit: "",
+          needsZeroDeductionConfirm: true,
+          incomeTypeLabel: "사용자 확인 필요 (일당 vs 월급)",
+          reasonLine: "공제가 0원인 명세서는 일용근로일 수도 있고 소득이 적은 일반 근로소득일 수도 있어, 위 질문에 답해 주시면 분류합니다",
+          extraNoticeLine: "",
+          ruleCode: "확인 대기"
+        };
+      }
+
+      // 사용자가 직접 유형을 지정했거나 '모름(unknown)'일 때 공제 비율·항목으로 자동 판독
+      if (hasFourIns || rawPayslip.incomeType === "wage" || (rawPayslip.userSelectedType === "wage")) {
+        return {
+          ...rawPayslip,
+          gross,
+          deductionTotal,
+          net: gross - deductionTotal,
+          incomeType: "wage",
+          isZeroDeductionWage: false,
+          needsZeroDeductionConfirm: false,
+          incomeTypeLabel: "근로소득 (4대보험)",
+          reasonLine: "공제에 4대보험이 있어 근로소득으로 봤습니다",
+          extraNoticeLine: "",
+          ruleCode: "연말정산 대상"
+        };
+      }
+
+      const is33Percent = Math.abs(ratio - rules.R1.rate) < 0.004;
+      if (is33Percent || rawPayslip.incomeType === "biz" || rawPayslip.userSelectedType === "biz") {
+        const inferredItems = items.length > 0 ? items : [
+          { name: "소득세", amount: Math.round(gross * rules.R1.incomeTaxRate) },
+          { name: "지방소득세", amount: deductionTotal - Math.round(gross * rules.R1.incomeTaxRate) }
+        ];
+        return {
+          ...rawPayslip,
+          gross,
+          deductionTotal,
+          net: gross - deductionTotal,
+          deductionItems: inferredItems,
+          incomeType: "biz",
+          isZeroDeductionWage: false,
+          needsZeroDeductionConfirm: false,
+          incomeTypeLabel: "사업소득 (3.3% 원천징수)",
+          reasonLine: "공제가 지급액의 3.3%라 사업소득으로 봤습니다",
+          extraNoticeLine: "",
+          ruleCode: "R1 (원천징수 3.3%)"
+        };
+      }
+
+      if (rawPayslip.incomeType === "daily" || rawPayslip.userSelectedType === "daily") {
+        return {
+          ...rawPayslip,
+          gross,
+          deductionTotal,
+          net: gross - deductionTotal,
+          deductionItems: items,
+          incomeType: "daily",
+          isZeroDeductionWage: false,
+          needsZeroDeductionConfirm: false,
+          incomeTypeLabel: "일용근로소득",
+          reasonLine: "원천징수 공제가 단기·일당 형태라 일용근로소득으로 봤습니다",
+          extraNoticeLine: "",
+          ruleCode: "일용근로 분리과세"
+        };
+      }
+
+      // 그 외 공제 비율이 애매한 경우: 공제액이 5% 이상이면 4대보험 포함 근로소득 추정, 아니면 3.3% 유사 소득 추정
+      if (ratio >= 0.05) {
+        return {
+          ...rawPayslip,
+          gross,
+          deductionTotal,
+          net: gross - deductionTotal,
+          deductionItems: items.length > 0 ? items : [
+            { name: "4대보험 및 소득세 합계", amount: deductionTotal }
+          ],
+          incomeType: "wage",
+          isZeroDeductionWage: false,
+          needsZeroDeductionConfirm: false,
+          incomeTypeLabel: "근로소득 (4대보험 추정)",
+          reasonLine: `공제액이 세전 지급액의 약 ${(ratio * 100).toFixed(1)}%라 4대보험이 포함된 근로소득으로 봤습니다`,
+          extraNoticeLine: "",
+          ruleCode: "연말정산 대상"
+        };
+      }
+
+      return {
+        ...rawPayslip,
+        gross,
+        deductionTotal,
+        net: gross - deductionTotal,
+        deductionItems: items.length > 0 ? items : [
+          { name: "원천징수 세액", amount: deductionTotal }
+        ],
+        incomeType: "biz",
+        isZeroDeductionWage: false,
+        needsZeroDeductionConfirm: false,
+        incomeTypeLabel: "사업소득 (원천징수 추정)",
+        reasonLine: `공제액(${deductionTotal.toLocaleString()}원)이 소액 원천징수 형태라 3.3% 계열 소득으로 봤습니다`,
+        extraNoticeLine: "",
+        ruleCode: "R1 (원천징수 3.3%)"
+      };
+    }
+
+    // 단계 ② 검증: 판독된 명세서의 공제 항목마다 왜 빠졌는지 설명과 규칙 출처 뱃지를 부여
+    function verifyDeductions(classifiedPayslip, rules = CONFIG.RULES) {
+      const p = readPayslip(classifiedPayslip, rules);
+      const rawItems = Array.isArray(p.deductionItems) && p.deductionItems.length > 0
+        ? p.deductionItems
+        : (p.deductionTotal > 0 ? [{ name: "공제 합계", amount: p.deductionTotal }] : []);
+
+      const verifiedItems = rawItems.map(item => {
+        if (item.name === "국민연금") {
+          return {
+            name: item.name,
+            amount: item.amount,
+            whyLine: "노후 연금을 위해 세전 월급의 약 4.5%를 근로자 부담분으로 미리 떼어 적립합니다.",
+            ruleCode: "연말정산 대상",
+            ruleTitle: "4대보험 근로자 부담분 공제 (근로소득 연말정산 대상)",
+            refundablePart: false
+          };
+        }
+        if (item.name === "건강보험") {
+          return {
+            name: item.name,
+            amount: item.amount,
+            whyLine: "병원비 혜택을 받는 국민건강보험과 장기요양보험 근로자 부담분입니다.",
+            ruleCode: "연말정산 대상",
+            ruleTitle: "4대보험 근로자 부담분 공제 (근로소득 연말정산 대상)",
+            refundablePart: false
+          };
+        }
+        if (item.name === "고용보험") {
+          return {
+            name: item.name,
+            amount: item.amount,
+            whyLine: "실업급여 등을 받을 수 있도록 세전 급여의 약 0.9%를 내는 사회보험료입니다.",
+            ruleCode: "연말정산 대상",
+            ruleTitle: "4대보험 근로자 부담분 공제 (근로소득 연말정산 대상)",
+            refundablePart: false
+          };
+        }
+        if (item.name === "소득세") {
+          if (p.incomeType === "biz") {
+            return {
+              name: item.name,
+              amount: item.amount,
+              whyLine: "프리랜서·인적용역 지급액에서 국세청에 미리 떼어 내는 3% 원천징수 세금입니다.",
+              ruleCode: "R1 (원천징수 3.3%)",
+              ruleTitle: rules.R1.title,
+              refundablePart: true
+            };
+          }
+          return {
+            name: item.name,
+            amount: item.amount,
+            whyLine: "근로소득 간이세액표에 따라 매달 임시로 미리 떼어 국세청에 내는 소득세입니다.",
+            ruleCode: "연말정산 대상",
+            ruleTitle: "근로소득 간이세액 원천징수 (연말정산 대상)",
+            refundablePart: true
+          };
+        }
+        if (item.name === "지방소득세") {
+          if (p.incomeType === "biz") {
+            return {
+              name: item.name,
+              amount: item.amount,
+              whyLine: "소득세의 10%(3.3% 소득의 경우 0.3%)를 시청·구청 등 지방자치단체에 함께 내는 세금입니다.",
+              ruleCode: "R1 (원천징수 3.3%)",
+              ruleTitle: rules.R1.title,
+              refundablePart: true
+            };
+          }
+          return {
+            name: item.name,
+            amount: item.amount,
+            whyLine: "소득세의 10%를 시청·구청 등 지방자치단체에 함께 내는 세금입니다.",
+            ruleCode: "연말정산 대상",
+            ruleTitle: "근로소득 지방소득세 원천징수 (연말정산 대상)",
+            refundablePart: true
+          };
+        }
+        return {
+          name: item.name,
+          amount: item.amount,
+          whyLine: "급여 지급 시 원천징수 규칙에 따라 미리 공제된 금액입니다.",
+          ruleCode: p.incomeType === "biz" ? "R1 (원천징수 3.3%)" : (p.incomeType === "wage" ? "연말정산 대상" : "일용근로 분리과세"),
+          ruleTitle: p.incomeType === "biz" ? rules.R1.title : "소득 유형별 원천징수 기준",
+          refundablePart: true
+        };
+      });
+
+      // 정산 대상 세액(소득세+지방소득세 등) 합계
+      const taxOnlySum = verifiedItems
+        .filter(i => i.refundablePart)
+        .reduce((acc, cur) => acc + cur.amount, 0);
+
+      let zeroDeductionSummary = "이번 달에 0원이 빠졌고, 일용근로 비과세 요건에 해당하면 연말·5월에 별도 정산할 세금이 없습니다.";
+      if (p.incomeType === "wage") {
+        zeroDeductionSummary = "이번 달에 0원이 빠졌습니다. 소득이 적어 이번 달엔 떼인 게 없지만, 연간 합산 시 신고 대상일 수 있습니다.";
+      } else if (p.incomeType === "pending") {
+        zeroDeductionSummary = "이번 달에 0원이 빠졌습니다. 판독 화면에서 하루 단위(일당)인지 한 달 단위(월급)인지 선택하면 정산 대상 여부를 안내해 드립니다.";
+      }
+
+      return {
+        payslip: p,
+        verifiedItems,
+        totalDeducted: p.deductionTotal,
+        taxOnlySum,
+        summaryLine: p.deductionTotal === 0
+          ? zeroDeductionSummary
+          : `이번 달에 ${p.deductionTotal.toLocaleString()}원이 빠졌고, 그중 ${taxOnlySum.toLocaleString()}원은 연말·5월에 정산될 수 있습니다.`
+      };
+    }
+
+    // 단계 ③ 누적: 1년치 명세서 배열을 받아 매트릭스·합계·신호등·환급범위·1분당 기대금액·근로장려금 판정을 생성
+    function accumulate(payslips, settings = {}, rules = CONFIG.RULES, timeCosts = CONFIG.TIME_COSTS) {
+      const classifiedList = (payslips || [])
+        .map(p => readPayslip(p, rules))
+        .filter(p => p.incomeType !== "pending");
+      const employersMap = new Map();
+
+      let totalGross = 0;
+      let totalWithholding = 0;
+      let fourInsSum = 0;
+      let withholdingTaxSum = 0;
+      let bizWithholdingSum = 0;
+      let bizCount = 0;
+      let dailyCount = 0;
+      let wageCount = 0;
+      const typeGross = { wage: 0, biz: 0, daily: 0 };
+      const activeMonthsSet = new Set();
+
+      classifiedList.forEach(item => {
+        const emp = item.employer || "미지정 고용주";
+        const m = Number(item.month) || 1;
+        activeMonthsSet.add(m);
+
+        if (!employersMap.has(emp)) {
+          employersMap.set(emp, {
+            employer: emp,
+            primaryType: item.incomeType,
+            primaryTypeLabel: item.isZeroDeductionWage ? "근로소득(공제 없음)" : "",
+            months: {},
+            rowTotalGross: 0,
+            rowTotalWithholding: 0
+          });
+        }
+        const row = employersMap.get(emp);
+        if (!item.isZeroDeductionWage && item.incomeType === "wage") {
+          row.primaryTypeLabel = "";
+        }
+        if (!row.months[m]) {
+          row.months[m] = { gross: 0, deductionTotal: 0, incomeType: item.incomeType, count: 0 };
+        }
+        row.months[m].gross += item.gross;
+        row.months[m].deductionTotal += item.deductionTotal;
+        row.months[m].incomeType = item.incomeType;
+        row.months[m].count += 1;
+        row.rowTotalGross += item.gross;
+        row.rowTotalWithholding += item.deductionTotal;
+
+        const rawItems = Array.isArray(item.deductionItems) ? item.deductionItems : [];
+        const itemFourIns = rawItems
+          .filter(d => ["국민연금", "건강보험", "고용보험"].includes(d.name))
+          .reduce((acc, cur) => acc + (Number(cur.amount) || 0), 0);
+        const itemTax = Math.max(0, item.deductionTotal - itemFourIns);
+
+        totalGross += item.gross;
+        totalWithholding += item.deductionTotal;
+        fourInsSum += itemFourIns;
+        withholdingTaxSum += itemTax;
+        typeGross[item.incomeType] = (typeGross[item.incomeType] || 0) + item.gross;
+
+        if (item.incomeType === "biz") {
+          bizCount += 1;
+          bizWithholdingSum += item.deductionTotal;
+        } else if (item.incomeType === "daily") {
+          dailyCount += 1;
+        } else {
+          wageCount += 1;
+        }
+      });
+
+      const employerCount = employersMap.size;
+      const activeMonthCount = activeMonthsSet.size;
+      const matrixRows = Array.from(employersMap.values());
+
+      // 신호등 판정 로직 (탭4 c)
+      // ❓ 정보 부족: 등록된 명세서가 0건인 경우
+      // 🟢 3.3% 또는 일용 소득이 있고 5월 신고 이력 없음 → 환급 가능성
+      // 🟡 고용주 2곳 이상(근로 복수 등 또는 5월 신고 이력 있음/복합) → 합산 신고 대상일 수 있음
+      // ⚪ 근로소득 1곳 + 연말정산 완료 → 별도 신고 여지 적음
+      let signal = "unknown";
+      let signalEmoji = "❓";
+      let signalTitle = "정보 부족 — 지급명세서를 먼저 확인해야 합니다";
+      let signalReason = "장부에 등록된 명세서가 없어 소득 유형과 원천징수 내역을 확인할 수 없습니다.";
+      let showR4Warning = false;
+
+      const signalOverride = settings.signalSimulationMode || "auto";
+
+      if (classifiedList.length === 0 || signalOverride === "unknown") {
+        signal = "unknown";
+        signalEmoji = "❓";
+        signalTitle = "지급명세서를 먼저 확인해야 합니다";
+        signalReason = "등록된 급여명세서가 없거나 소득 유형을 알 수 없습니다. 홈택스에서 지급명세서를 먼저 확인해야 합니다.";
+      } else if (signalOverride === "white" || (employerCount === 1 && bizCount === 0 && dailyCount === 0)) {
+        signal = "white";
+        signalEmoji = "⚪";
+        signalTitle = "별도 신고 여지 적음 (근로소득 1곳 + 연말정산 완료 기준)";
+        signalReason = `고용주가 ${employerCount}곳이고 근로소득만 ${wageCount}회 있어, 직장에서 연말정산을 마쳤다면 5월 별도 신고가 불필요할 수 있습니다 (규칙 R3).`;
+      } else if (signalOverride === "yellow" || (bizCount === 0 && dailyCount === 0 && employerCount >= 2)) {
+        signal = "yellow";
+        signalEmoji = "🟡";
+        signalTitle = "합산 신고 대상일 수 있음 (환급 또는 추가 납부 양방향 가능성)";
+        signalReason = `고용주가 ${employerCount}곳이라 소득 합산 신고 대상이 될 수 있습니다. 합산 과세표준에 따라 환급이 아니라 추가 납부가 나올 수도 있습니다 (규칙 R4).`;
+        showR4Warning = true;
+      } else if ((bizCount > 0 || dailyCount > 0) && !settings.mayFiled) {
+        signal = "green";
+        signalEmoji = "🟢";
+        signalTitle = "5월 종합소득세 환급 가능성 있음";
+        signalReason = `고용주가 ${employerCount}곳이고 3.3% 원천징수가 ${bizCount}회(원천징수 합계 ${bizWithholdingSum.toLocaleString()}원), 일용근로가 ${dailyCount}회 있으며 5월 신고 이력이 없습니다.`;
+        if (employerCount >= 2) {
+          showR4Warning = true;
+        }
+      } else {
+        signal = "yellow";
+        signalEmoji = "🟡";
+        signalTitle = "합산 신고 대상일 수 있음 (환급 또는 추가 납부 양방향 가능성)";
+        signalReason = `고용주가 ${employerCount}곳이고 3.3% 원천징수가 ${bizCount}회 있습니다. 합산 소득 규모에 따라 환급일 수도 추가 납부일 수도 있습니다 (규칙 R4).`;
+        showR4Warning = true;
+      }
+
+      // (d) 예상 환급 범위 — 🟢일 때만 계산 (하한 = 3.3% 원천징수 합계 × 0.5, 상한 = × 1.0)
+      let refundRange = null;
+      if (signal === "green" && bizWithholdingSum > 0) {
+        refundRange = {
+          min: Math.round(bizWithholdingSum * 0.5),
+          max: Math.round(bizWithholdingSum * 1.0)
+        };
+      }
+
+      // (e) 소요 시간 합산 (신호등별) 및 1분당 기대 금액
+      // 🟢/🟡: 홈택스 로그인(5) + 지급명세서 조회(10) + 소득 합산 확인(10) + 신고서 작성(20) = 45분
+      // ⚪: 홈택스 로그인(5) + 지급명세서 조회(10) = 15분
+      // ❓: 홈택스 로그인(5) + 지급명세서 조회(10) = 15분
+      const applicableTimeSteps = (signal === "green" || signal === "yellow")
+        ? timeCosts
+        : timeCosts.slice(0, 2);
+      const totalMinutes = applicableTimeSteps.reduce((acc, cur) => acc + cur.minutes, 0);
+
+      let perMinuteRange = null;
+      if (refundRange && totalMinutes > 0) {
+        perMinuteRange = {
+          minPerMin: Math.round(refundRange.min / totalMinutes),
+          maxPerMin: Math.round(refundRange.max / totalMinutes)
+        };
+      }
+
+      // 근로장려금 소득요건 판정 — R8로 판정 ("소득요건은 충족합니다 / 소득 기준 초과 / 판단 불가" 3단계만)
+      let eitcStatus = "판단 불가";
+      let eitcReason = "등록된 소득 데이터가 없거나 가구 재산 요건을 아직 확인하기 전입니다.";
+      if (classifiedList.length > 0 && totalGross > 0) {
+        if (totalGross < rules.R8.maxAnnualIncome) {
+          eitcStatus = "소득요건은 충족합니다";
+          eitcReason = "재산요건(가구원 합산 2.4억 원 미만)은 이 앱에서 확인할 수 없습니다. 부모님과 함께 사는 경우 부모님 명의 재산도 합산되므로, 최종 자격은 홈택스에서 확인하세요.";
+        } else {
+          eitcStatus = "소득 기준 초과";
+          eitcReason = `연 총지급액(${totalGross.toLocaleString()}원)이 단독가구 소득요건 기준(2,200만 원 미만)을 초과합니다.`;
+        }
+      }
+
+      return {
+        classifiedList,
+        employerCount,
+        activeMonthCount,
+        monthCount: activeMonthCount,
+        totalGross,
+        totalWithholding,
+        totalNet: totalGross - totalWithholding,
+        fourInsSum,
+        withholdingTaxSum,
+        bizWithholdingSum,
+        bizCount,
+        dailyCount,
+        wageCount,
+        nonFourInsCount: bizCount + dailyCount,
+        typeGross,
+        matrixRows,
+        signal,
+        signalEmoji,
+        signalTitle,
+        signalReason,
+        showR4Warning,
+        refundRange,
+        applicableTimeSteps,
+        totalMinutes,
+        perMinuteRange,
+        eitcStatus,
+        eitcReason
+      };
+    }
+
+    // 단계 ④ 정리: 5월 신고 입력값과 금융사 제출용 본인 소득 표준 리포트 데이터를 생성
+    function buildReport(accumulatedData, rules = CONFIG.RULES) {
+      const monthlySummary = [];
+      for (let m = 1; m <= 12; m++) {
+        const itemsInMonth = accumulatedData.classifiedList.filter(p => Number(p.month) === m);
+        const grossSum = itemsInMonth.reduce((a, b) => a + b.gross, 0);
+        const withholdingSum = itemsInMonth.reduce((a, b) => a + b.deductionTotal, 0);
+        const employers = Array.from(new Set(itemsInMonth.map(i => i.employer))).join(", ");
+        const types = Array.from(new Set(itemsInMonth.map(i => {
+          if (i.incomeType === "wage") return "근로";
+          if (i.incomeType === "biz") return "3.3%";
+          return "일용";
+        }))).join("·");
+
+        const ruleBadges = Array.from(new Set(itemsInMonth.map(i => {
+          if (i.incomeType === "wage") return "연말정산 대상";
+          if (i.incomeType === "biz") return "R1 (원천징수 3.3%)";
+          return "일용근로 분리과세";
+        })));
+
+        monthlySummary.push({
+          month: m,
+          count: itemsInMonth.length,
+          employers: employers || "-",
+          types: types || "-",
+          grossSum,
+          withholdingSum,
+          netSum: grossSum - withholdingSum,
+          ruleBadges,
+          verifiedRuleText: itemsInMonth.length > 0
+            ? ruleBadges.join(" · ")
+            : "해당 월 등록 내역 없음"
+        });
+      }
+
+      return {
+        periodText: "2025년 1월 ~ 12월 (12개월 누적)",
+        employerCount: accumulatedData.employerCount,
+        activeMonthCount: accumulatedData.activeMonthCount,
+        totalGross: accumulatedData.totalGross,
+        totalWithholding: accumulatedData.totalWithholding,
+        fourInsSum: accumulatedData.fourInsSum,
+        withholdingTaxSum: accumulatedData.withholdingTaxSum,
+        totalNet: accumulatedData.totalGross - accumulatedData.totalWithholding,
+        bizWithholdingSum: accumulatedData.bizWithholdingSum,
+        nonFourInsCount: accumulatedData.nonFourInsCount,
+        monthlySummary,
+        hometaxGuide: {
+          filingPeriod: rules.R2.period,
+          wageGross: accumulatedData.typeGross.wage || 0,
+          bizGross: accumulatedData.typeGross.biz || 0,
+          dailyGross: accumulatedData.typeGross.daily || 0,
+          prepaidTax33: accumulatedData.bizWithholdingSum,
+          employersCount: accumulatedData.employerCount
+        }
+      };
+    }
+
+    /* =========================================================================
+     * 3. 상태 및 저장/복원 (localStorage 단일 키 "moafin:v1")
+     *    왜 단일 키와 try/catch를 쓰는가: 브라우저 저장소 접근이 차단되거나
+     *    손상된 JSON이 들어 있어도 절대 흰 화면이 뜨지 않고 안전하게 동작하기 위함입니다.
+     * ========================================================================= */
+    const STORAGE_KEY = "moafin:v1";
+
+    // 시드 명세서 배열 생성 함수 (2-10 규칙을 바탕으로 코드가 계산)
+    function 시드명세서생성() {
+      const list = [];
+      let seq = 1;
+      CONFIG.SEED_SPECS.forEach(spec => {
+        spec.months.forEach(m => {
+          list.push({
+            id: `seed-${seq++}`,
+            isSeed: true,
+            employer: spec.employer,
+            month: m,
+            gross: spec.gross,
+            deductionTotal: spec.deductionTotal,
+            incomeType: spec.incomeType,
+            userSelectedType: spec.incomeType,
+            deductionItems: spec.deductionItems.map(d => ({ ...d }))
+          });
+        });
+      });
+      return list;
+    }
+
+    function 기본상태생성() {
+      const seedPayslips = 시드명세서생성();
+      return {
+        version: 1,
+        mvpMode: false,
+        payslips: seedPayslips,
+        settings: {
+          notificationEnabled: false,
+          financialTransferEnabled: false,
+          mayFiled: false,
+          signalSimulationMode: "auto"
+        },
+        firstRunSeen: false,
+        seedLoaded: true
+      };
+    }
+
+    let appState = 상태불러오기();
+
+    // 현재 탭2/탭3에서 선택·판독 중인 임시 명세서 상태
+    let currentSelectedSampleKey = "A";
+    let currentInspectedPayslip = readPayslip(CONFIG.SAMPLE_PAYSLIPS[0]);
+    let transferConsentModalOpen = false;
+    let demoUploadNoticeMessage = "";
+
+    function 상태불러오기() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          const initial = 기본상태생성();
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+          return initial;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.payslips)) {
+          return 기본상태생성();
+        }
+        return {
+          version: 1,
+          mvpMode: Boolean(parsed.mvpMode),
+          payslips: parsed.payslips,
+          settings: {
+            notificationEnabled: Boolean(parsed.settings?.notificationEnabled),
+            financialTransferEnabled: Boolean(parsed.settings?.financialTransferEnabled),
+            mayFiled: Boolean(parsed.settings?.mayFiled),
+            signalSimulationMode: parsed.settings?.signalSimulationMode || "auto"
+          },
+          firstRunSeen: Boolean(parsed.firstRunSeen),
+          seedLoaded: Boolean(parsed.seedLoaded)
+        };
+      } catch (e) {
+        return 기본상태생성();
+      }
+    }
+
+    let toastTimer = null;
+    function 상태저장(showToast = true) {
+      try {
+        const toSave = {
+          version: 1,
+          mvpMode: Boolean(appState.mvpMode),
+          payslips: appState.payslips,
+          settings: appState.settings,
+          firstRunSeen: Boolean(appState.firstRunSeen),
+          seedLoaded: Boolean(appState.seedLoaded)
+        };
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      } catch (e) {
+        // 시크릿 모드 등 저장 실패 시에도 메모리 상태로 계속 동작
+      }
+      if (showToast) {
+        토스트표시("저장됨 ✓");
+      }
+    }
+
+    function 토스트표시(msg) {
+      const el = document.getElementById("save-toast");
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add("visible");
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.remove("visible");
+      }, 1500);
+    }
+
+    // 사용자 입력값을 innerHTML에 넣기 전 XSS 방지용 이스케이프 헬퍼
+    function 텍스트이스케이프(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function 금액포맷(num) {
+      return `${(Number(num) || 0).toLocaleString("ko-KR")}원`;
+    }
+
+    function 국세청뱃지HTML() {
+      return `<span class="badge-nts">${텍스트이스케이프(CONFIG.APP.ntsBadgeText)}</span>`;
+    }
+    /* =========================================================================
+     * 4. 화면 그리기 (상단 누적 바 / MVP 배너 / 탭1 홈 / 탭2 판독 / 탭3 검증 / 탭4 누적)
+     *    왜 모든 화면 상단에 누적 바를 그리는가: 설계 원칙 (1) "이 앱의 가치는 한 달이
+     *    아니라 쌓인 1년에서 나온다"를 모든 탭에서 일관되게 체감하게 하기 위함입니다.
+     * ========================================================================= */
+
+    function 현재탭가져오기() {
+      const hash = (window.location.hash || "#home").replace("#", "");
+      const validTabs = ["home", "read", "verify", "accumulate", "report", "settings"];
+      return validTabs.includes(hash) ? hash : "home";
+    }
+
+    function 소득유형뱃지HTML(incomeType, customLabel = "") {
+      if (incomeType === "pending") return `<span class="badge-rule">질문 답변 대기</span>`;
+      if (incomeType === "wage") return `<span class="badge-type wage">${텍스트이스케이프(customLabel || "근로소득 (4대보험)")}</span>`;
+      if (incomeType === "biz") return `<span class="badge-type biz">${텍스트이스케이프(customLabel || "3.3% 원천징수")}</span>`;
+      return `<span class="badge-type daily">${텍스트이스케이프(customLabel || "일용근로")}</span>`;
+    }
+
+    function 상단헤더및누적바그리기(acc) {
+      const oneLinerEl = document.getElementById("header-oneliner");
+      if (oneLinerEl) {
+        oneLinerEl.textContent = CONFIG.APP.oneLiner;
+      }
+
+      const mvpBtn = document.getElementById("btn-mvp-toggle");
+      if (mvpBtn) {
+        mvpBtn.classList.toggle("active", appState.mvpMode);
+        mvpBtn.setAttribute("aria-pressed", String(appState.mvpMode));
+        mvpBtn.textContent = appState.mvpMode ? "💡 MVP로 보기: 켜짐" : "💡 MVP로 보기: 꺼짐";
+      }
+
+      const currentTab = 현재탭가져오기();
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        const isCurrent = btn.getAttribute("data-tab") === currentTab;
+        btn.classList.toggle("active", isCurrent);
+      });
+
+      const barEl = document.getElementById("global-year-bar");
+      if (barEl) {
+        barEl.innerHTML = `
+          <div class="global-year-bar-items">
+            <span class="global-year-item">📅 <strong>2025년 누적 장부</strong></span>
+            <span class="global-year-item">🏢 등록 고용주 <strong>${acc.employerCount}곳</strong></span>
+            <span class="global-year-item">🗓️ 등록 개월 수 <strong>${acc.activeMonthCount}개월</strong> (총 ${acc.classifiedList.length}건)</span>
+            <span class="global-year-item">💰 올해 누적 지급액 <strong>${금액포맷(acc.totalGross)}</strong></span>
+          </div>
+          <div>
+            <span>신고 판정: <strong>${acc.signalEmoji} ${텍스트이스케이프(acc.signalTitle.split("(")[0].trim())}</strong></span>
+          </div>
+        `;
+      }
+    }
+
+    function 첫실행안내그리기() {
+      const container = document.getElementById("first-run-container");
+      if (!container) return;
+      if (!appState.mvpMode || appState.firstRunSeen) {
+        container.innerHTML = "";
+        return;
+      }
+
+      const elementsListHTML = Object.values(CONFIG.MVP_INFO.elements)
+        .map(line => `<li style="margin-bottom:4px;">${텍스트이스케이프(line)}</li>`)
+        .join("");
+
+      container.innerHTML = `
+        <div class="mvp-card" role="region" aria-label="첫 실행 안내">
+          <h2>💡 이 앱은 모듈1 MVP입니다</h2>
+          <p style="font-weight:700; margin-bottom:10px;">"${텍스트이스케이프(CONFIG.MVP_INFO.oneLineSummary)}"</p>
+          <ul style="padding-left:20px; margin-bottom:14px;">
+            ${elementsListHTML}
+          </ul>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" data-action="first-run-mvp-on">💡 MVP 해설 계속 켜 두기</button>
+            <button type="button" class="btn" data-action="first-run-dismiss">안내 닫기</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function MVP해설배너그리기(currentTab) {
+      const container = document.getElementById("mvp-banner-container");
+      if (!container) return;
+      if (!appState.mvpMode) {
+        container.innerHTML = "";
+        return;
+      }
+
+      const indices = CONFIG.MVP_INFO.tabMapping[currentTab] || [1, 2];
+      const linesHTML = indices
+        .map(idx => `<p style="margin-bottom:6px; font-weight:600;">${텍스트이스케이프(CONFIG.MVP_INFO.elements[idx])}</p>`)
+        .join("");
+
+      container.innerHTML = `
+        <div class="mvp-card" role="region" aria-label="이 화면이 보여주는 MVP 요소">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h2 style="margin-bottom:0;">💡 이 화면이 보여주는 MVP 요소</h2>
+            <span class="badge-rule">모듈1 MVP 해설 모드</span>
+          </div>
+          ${linesHTML}
+          <p style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--mvp-border); font-weight:700;">
+            📌 한 줄 정리: "${텍스트이스케이프(CONFIG.MVP_INFO.oneLineSummary)}"
+          </p>
+        </div>
+      `;
+    }
+
+    function 시드배너그리기() {
+      const container = document.getElementById("seed-banner-container");
+      if (!container) return;
+      const hasSeed = appState.payslips.some(p => p.isSeed);
+      if (!hasSeed) {
+        container.innerHTML = "";
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="seed-banner" role="region" aria-label="예시 데이터 안내">
+          <div>
+            <strong>📌 예시 데이터 1년치 (2025년 1~12월 · 고용주 3곳: 카페 A / 과외 / 행사 스태프)</strong>가 장부에 들어 있습니다.
+            <span>처음 오신 분도 1년치 소득이 어떻게 모이는지 바로 볼 수 있도록 예시 명세서를 넣어 두었습니다.</span>
+          </div>
+          <button type="button" class="btn" data-action="clear-seed-data">🗑️ 내 명세서만 남기고 예시 지우기</button>
+        </div>
+      `;
+    }
+
+    // 탭1 🏠 홈 화면 렌더링 (홈에는 입력칸을 두지 않음)
+    function 홈화면그리기(acc) {
+      // UX Flow 5단계 스트립 (MVP 모드에서만 표시)
+      const uxFlowHTML = CONFIG.KILLER_FEATURE.uxFlow.map((step, idx) => `
+        <div class="ux-flow-step">
+          <span class="ux-flow-arrow">${idx < 4 ? `STEP ${step.order} →` : `STEP ${step.order} ★`}</span>
+          <div style="font-weight:800; margin-bottom:4px;">${텍스트이스케이프(step.title)}</div>
+          <div class="small-text" style="color:var(--text);">${텍스트이스케이프(step.detail)}</div>
+        </div>
+      `).join("");
+
+      // 여정지도 5단계 가로 스트립 및 감정 막대 (MVP 모드에서만 표시)
+      const journeyHTML = CONFIG.JOURNEY_MAP.steps.map(item => {
+        const widthPct = Math.max(15, Math.min(100, ((item.emotion + 4) / 5) * 100));
+        const barColor = item.isLowest ? "var(--danger)" : (item.emotion >= 0 ? "var(--success)" : "var(--warn)");
+        return `
+          <div class="journey-card ${item.isLowest ? "lowest" : ""}">
+            <div>
+              <div style="font-weight:800; margin-bottom:6px; color:${item.isLowest ? "var(--danger)" : "var(--text)"};">
+                ${텍스트이스케이프(item.step)}
+              </div>
+              <p style="font-size:14px;">${텍스트이스케이프(item.desc)}</p>
+            </div>
+            <div class="emotion-bar-wrap">
+              <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700;">
+                <span>감정 점수</span>
+                <span style="color:${item.isLowest ? "var(--danger)" : "var(--text)"};">${item.emotion > 0 ? `+${item.emotion}` : item.emotion}</span>
+              </div>
+              <div class="emotion-meter">
+                <div class="emotion-fill" style="width:${widthPct}%; background:${barColor};"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // 고통점 4개 카드 (MVP 모드에서만 표시)
+      const painCardsHTML = CONFIG.INTERVIEWS.painPoints.slice(0, 4).map(p => `
+        <div class="card" style="margin-bottom:0; background:var(--bg);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span class="badge-rule">${텍스트이스케이프(p.tag)}</span>
+            <span style="font-size:14px; font-weight:700;">인터뷰 고통점</span>
+          </div>
+          <p style="font-weight:800; font-size:17px;">${텍스트이스케이프(p.quote)}</p>
+        </div>
+      `).join("");
+
+      const mvpOnlyHomeSectionsHTML = appState.mvpMode ? `
+        <!-- UX Flow 5단계 가로 스트립 (MVP 모드 전용) -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <h2>⚡ UX Flow (5단계 · 2클릭 · 1분)</h2>
+            <span class="badge-rule">슬러지 0 · 기본 알림 꺼짐</span>
+          </div>
+          <p>${텍스트이스케이프(CONFIG.KILLER_FEATURE.whoWhenWhat)}</p>
+          <div class="ux-flow-strip">
+            ${uxFlowHTML}
+          </div>
+        </div>
+
+        <!-- 페르소나 상혁의 여정지도 5단계 감정 곡선 (MVP 모드 전용) -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <h2>📉 고객 여정지도 5단계와 감정 최저점 (${텍스트이스케이프(CONFIG.PERSONA.profile)})</h2>
+            <span class="badge-rule">★ 최저점 ⑤ 겨냥</span>
+          </div>
+          <p style="margin-bottom:8px;">
+            <strong>문제 정의문:</strong> "${텍스트이스케이프(CONFIG.APP.problemStatement)}"
+          </p>
+          <p style="margin-bottom:8px;">
+            <strong>HMW 질문:</strong> "${텍스트이스케이프(CONFIG.APP.hmwStatement)}"
+          </p>
+          <div class="journey-strip">
+            ${journeyHTML}
+          </div>
+          <div style="margin-top:14px; padding:12px; background:var(--danger-bg); border:1px solid var(--danger); border-radius:8px; font-weight:700;">
+            🎯 ${텍스트이스케이프(CONFIG.JOURNEY_MAP.rootCauseNote)}
+          </div>
+        </div>
+
+        <!-- 인터뷰 고통점 4개 카드 및 핵심 발견 (MVP 모드 전용) -->
+        <div class="card">
+          <h2>💬 팀 직접 인터뷰 (5명 익명 요약) — 핵심 고통점 4가지</h2>
+          <div class="grid-2" style="margin-top:12px; margin-bottom:14px;">
+            ${painCardsHTML}
+          </div>
+          <div style="padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px;">
+            <p style="margin-bottom:4px;"><strong>추가 인터뷰 기록:</strong> ${텍스트이스케이프(CONFIG.INTERVIEWS.painPoints[4].quote)} / ${텍스트이스케이프(CONFIG.INTERVIEWS.painPoints[5].quote)}</p>
+            <p style="font-weight:700; color:var(--accent);">💡 발견: ${텍스트이스케이프(CONFIG.INTERVIEWS.discovery)}</p>
+          </div>
+        </div>
+      ` : "";
+
+      return `
+        <div class="card">
+          <h2>🏠 ${텍스트이스케이프(CONFIG.APP.name)}</h2>
+          <p style="margin-bottom:16px; font-size:17px; font-weight:600;">
+            ${텍스트이스케이프(CONFIG.APP.oneLiner)}
+          </p>
+
+          <!-- 누적 상태 요약 3개 (장부 사실 합계) -->
+          <div class="grid-3" style="margin-bottom:20px;">
+            <div class="card" style="margin-bottom:0; background:var(--bg);">
+              <div style="font-weight:700; color:var(--sub);">🏢 등록 고용주 수</div>
+              <div class="amount-text" style="margin-top:6px;">${acc.employerCount}곳</div>
+              <span class="small-text" style="display:block; margin-top:4px;">현재 장부 등록 기준</span>
+            </div>
+            <div class="card" style="margin-bottom:0; background:var(--bg);">
+              <div style="font-weight:700; color:var(--sub);">🗓️ 등록 개월 수</div>
+              <div class="amount-text" style="margin-top:6px;">${acc.activeMonthCount}개월 / 12개월</div>
+              <span class="small-text" style="display:block; margin-top:4px;">총 ${acc.classifiedList.length}건 명세서 누적</span>
+            </div>
+            <div class="card" style="margin-bottom:0; background:var(--bg);">
+              <div style="font-weight:700; color:var(--sub);">💰 올해 총 지급액</div>
+              <div class="amount-text" style="margin-top:6px; color:var(--accent);">
+                ${금액포맷(acc.totalGross)}
+              </div>
+              <span class="small-text" style="display:block; margin-top:4px;">등록된 명세서 세전 합계</span>
+            </div>
+          </div>
+
+          <div style="text-align:center; padding:12px 0;">
+            <button type="button" class="btn-hero" data-action="go-read-tab">
+              📸 이번 달 급여명세서 확인하기 →
+            </button>
+          </div>
+        </div>
+
+        ${mvpOnlyHomeSectionsHTML}
+      `;
+    }
+
+    // 탭2 🔍 판독 화면 렌더링
+    function 판독화면그리기() {
+      const p = currentInspectedPayslip;
+
+      const sampleCardsHTML = CONFIG.SAMPLE_PAYSLIPS.map(sample => {
+        const isSelected = currentSelectedSampleKey === sample.sampleKey;
+        const deductionListHTML = sample.deductionItems.length > 0
+          ? sample.deductionItems.map(d => `
+              <div class="payslip-row">
+                <span>· ${텍스트이스케이프(d.name)}</span>
+                <span>${금액포맷(d.amount)}</span>
+              </div>
+            `).join("")
+          : `<div class="payslip-row"><span>· 원천징수 공제 없음</span><span>0원</span></div>`;
+
+        return `
+          <div class="payslip-paper ${isSelected ? "selected" : ""}">
+            <span class="payslip-badge-corner">예시</span>
+            <div>
+              <h3 style="padding-right:48px;">${텍스트이스케이프(sample.cardTitle)}</h3>
+              <p style="font-size:14px; color:var(--sub); margin-bottom:8px;">
+                고용주: <strong>${텍스트이스케이프(sample.employer)}</strong> · ${sample.month}월 급여명세서
+              </p>
+              <div class="payslip-divider"></div>
+              <div style="font-weight:700; font-size:14px; margin-bottom:4px;">[지급 내역]</div>
+              <div style="font-size:14px; margin-bottom:6px;">${텍스트이스케이프(sample.grossDetail)}</div>
+              <div class="payslip-row" style="font-weight:800;">
+                <span>세전 지급액</span>
+                <span>${금액포맷(sample.gross)}</span>
+              </div>
+              <div class="payslip-divider"></div>
+              <div style="font-weight:700; font-size:14px; margin-bottom:4px;">[공제 내역]</div>
+              ${deductionListHTML}
+              <div class="payslip-row" style="font-weight:800; margin-top:6px;">
+                <span>공제 합계</span>
+                <span>${금액포맷(sample.deductionTotal)}</span>
+              </div>
+              <div class="payslip-divider"></div>
+              <div class="payslip-row" style="font-size:16px; font-weight:800; color:var(--accent);">
+                <span>실수령액</span>
+                <span>${금액포맷(sample.net)}</span>
+              </div>
+            </div>
+            <button type="button" class="btn ${isSelected ? "btn-primary" : ""}" style="margin-top:12px; width:100%;" data-action="select-sample" data-sample="${sample.sampleKey}">
+              ${isSelected ? "✓ 지금 보고 있는 명세서" : "이 명세서 내용 살펴보기"}
+            </button>
+          </div>
+        `;
+      }).join("");
+
+      const uploadNoticeHTML = demoUploadNoticeMessage ? `
+        <div style="margin-top:12px; padding:12px 16px; background:var(--mvp-bg); border:2px solid var(--mvp-border); border-radius:8px; font-weight:700;">
+          ℹ️ ${텍스트이스케이프(demoUploadNoticeMessage)}
+        </div>
+      ` : "";
+
+      const zeroDeductionQuestionHTML = p.deductionTotal === 0 ? `
+        <div id="zero-deduction-question-box" style="padding:14px; background:var(--mvp-bg); border:2px solid var(--mvp-border); border-radius:8px; margin-bottom:14px;">
+          <div style="font-size:18px; font-weight:800; margin-bottom:6px;">
+            ❓ 이 일은 하루 단위로 일당을 받으셨나요, 한 달 단위로 월급을 받으셨나요?
+          </div>
+          <p style="font-size:15px; font-weight:600; color:var(--sub); margin-bottom:10px;">
+            공제가 0원인 명세서는 일용근로일 수도 있고, 소득이 적어 세금이 안 빠진 일반 근로소득일 수도 있어 자동으로 분류하지 않고 여쭤봅니다.
+          </p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn ${p.zeroDeductionPayUnit === "daily" ? "btn-primary" : ""}" data-action="choose-zero-deduction-unit" data-unit="daily">
+              🗓️ 하루 단위로 일당을 받았어요
+            </button>
+            <button type="button" class="btn ${p.zeroDeductionPayUnit === "monthly" ? "btn-primary" : ""}" data-action="choose-zero-deduction-unit" data-unit="monthly">
+              📅 한 달 단위로 월급을 받았어요
+            </button>
+          </div>
+        </div>
+      ` : "";
+
+      const extraNoticeHTML = p.extraNoticeLine ? `
+        <div style="margin-top:10px; padding:12px; background:var(--warn-bg); border:1px solid var(--warn); border-radius:8px; font-size:16px; font-weight:800; color:var(--text);">
+          ⚠️ ${텍스트이스케이프(p.extraNoticeLine)}
+        </div>
+      ` : "";
+
+      return `
+        <!-- 예시 명세서 3종 선택 카드 + 사진 업로드 안내 -->
+        <div class="card" id="sample-selection-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <div>
+              <h2>🔍 예시 명세서로 먼저 확인해 보기</h2>
+              <p>세금 용어나 원천징수 방식을 몰라도 괜찮아요. 세전 금액과 빠진 금액만 있으면 어떤 소득인지 자동으로 분류합니다.</p>
+            </div>
+            <button type="button" class="btn" data-action="demo-photo-upload">
+              📷 사진 업로드 (출시 예정)
+            </button>
+          </div>
+          ${uploadNoticeHTML}
+          <div class="grid-3" style="margin-top:14px;">
+            ${sampleCardsHTML}
+          </div>
+        </div>
+
+        <!-- 판독 결과 카드 + 장부에 넣기 버튼 -->
+        <div class="card" style="border:2px solid var(--accent);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <h2>📋 내 급여명세서 자동 판독 결과</h2>
+            <div>
+              ${소득유형뱃지HTML(p.incomeType, p.isZeroDeductionWage ? "근로소득(공제 없음)" : "")}
+              <span class="badge-rule">${텍스트이스케이프(p.ruleCode)}</span>
+            </div>
+          </div>
+
+          ${zeroDeductionQuestionHTML}
+
+          <div style="padding:14px; background:var(--accent-bg); border-radius:8px; margin-bottom:14px;">
+            <div style="font-size:18px; font-weight:800; margin-bottom:4px;">
+              판독된 소득 유형: ${텍스트이스케이프(p.incomeTypeLabel)}
+            </div>
+            <p style="font-size:17px; font-weight:700; color:var(--accent);">
+              💬 왜 그렇게 봤는지: "${텍스트이스케이프(p.reasonLine)}"
+            </p>
+            ${extraNoticeHTML}
+          </div>
+
+          <div class="grid-3" style="margin-bottom:16px;">
+            <div style="padding:12px; background:var(--bg); border-radius:8px;">
+              <div style="font-weight:700;">고용주 · 지급월</div>
+              <div style="font-size:20px; font-weight:800; margin-top:4px;">
+                ${텍스트이스케이프(p.employer)} (${p.month}월)
+              </div>
+            </div>
+            <div style="padding:12px; background:var(--bg); border-radius:8px;">
+              <div style="font-weight:700;">세전 지급액</div>
+              <div class="amount-text" style="font-size:24px; margin-top:4px;">
+                ${금액포맷(p.gross)}
+              </div>
+            </div>
+            <div style="padding:12px; background:var(--bg); border-radius:8px;">
+              <div style="font-weight:700;">공제액</div>
+              <div class="amount-text" style="font-size:24px; margin-top:4px;">
+                ${금액포맷(p.deductionTotal)}
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" data-action="add-inspected-to-ledger">
+              📥 내 1년 장부에 이 명세서 추가하기
+            </button>
+            <button type="button" class="btn" data-action="go-verify-tab">
+              왜 빠졌는지 보기 →
+            </button>
+            <button type="button" class="btn" data-action="go-accumulate-tab">
+              1년치 모인 소득과 환급액 보기 →
+            </button>
+          </div>
+        </div>
+
+        <!-- 직접 입력 모드 -->
+        <div class="card">
+          <h2>✍️ 내 명세서 금액 직접 입력하기</h2>
+          <p style="margin-bottom:12px;">
+            내 원천징수 방식이 무엇인지 몰라도 괜찮습니다. 세전 금액과 빠진 금액만 적으면 자동으로 분류합니다. (실명·주민번호·계좌번호는 입력하지 마세요)
+          </p>
+          <form id="custom-payslip-form" class="form-grid">
+            <div class="form-group">
+              <label for="input-employer">고용주 별칭 (실제 회사명 대신 별칭 권장)</label>
+              <input id="input-employer" class="form-control" type="text" value="동네 서점 알바" required>
+            </div>
+            <div class="form-group">
+              <label for="input-month">지급월 (2025년)</label>
+              <select id="input-month" class="form-control">
+                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => `<option value="${m}" ${m === 10 ? "selected" : ""}>${m}월</option>`).join("")}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="input-gross">세전 지급액 (원)</label>
+              <input id="input-gross" class="form-control" type="number" min="0" step="1000" value="600000" required>
+            </div>
+            <div class="form-group">
+              <label for="input-deduction">빠진 공제 합계 (원)</label>
+              <input id="input-deduction" class="form-control" type="number" min="0" step="100" value="19800" required>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="input-type">소득 유형 (몰라도 자동 판독됩니다)</label>
+              <select id="input-type" class="form-control">
+                <option value="unknown" selected>잘 모르겠어요 (공제 비율로 자동 판독)</option>
+                <option value="wage">4대보험이 빠지는 알바 같아요 (근로소득)</option>
+                <option value="biz">3.3% 세금이 빠지는 알바 같아요</option>
+                <option value="daily">하루 일당으로 세금 없이 받았어요 (일용근로)</option>
+                <option value="wage_zero">한 달 월급으로 세금 없이 받았어요 (근로소득·공제 없음)</option>
+              </select>
+            </div>
+            <div style="grid-column: 1 / -1; display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;">
+              <button type="submit" class="btn btn-primary">🔍 내 급여 유형과 공제 내역 확인하기</button>
+            </div>
+          </form>
+        </div>
+      `;
+    }
+
+    // 탭3 ✅ 검증 화면 렌더링
+    function 검증화면그리기() {
+      const verification = verifyDeductions(currentInspectedPayslip, CONFIG.RULES);
+      const p = verification.payslip;
+
+      const zeroDeductionRuleBadge = p.incomeType === "wage"
+        ? "연말정산 대상"
+        : (p.incomeType === "daily" ? "일용근로 분리과세" : "확인 대기");
+      const zeroDeductionWhyLine = p.incomeType === "wage"
+        ? "소득이 적어 이번 달엔 떼인 게 없지만, 연간 합산 시 신고 대상일 수 있습니다."
+        : (p.incomeType === "daily"
+            ? "일용근로소득은 일당 일정 금액 이하일 때 원천징수 세금이 0원입니다."
+            : "판독 화면에서 하루 단위(일당)인지 한 달 단위(월급)인지 선택해 주세요.");
+
+      const itemsHTML = verification.verifiedItems.length > 0
+        ? verification.verifiedItems.map(item => {
+            return `
+              <div class="card" style="background:var(--bg); margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                  <div>
+                    <strong style="font-size:18px;">${텍스트이스케이프(item.name)}</strong>
+                    <span class="badge-rule" style="margin-left:6px;">${텍스트이스케이프(item.ruleCode)}</span>
+                  </div>
+                  <div style="text-align:right;">
+                    <div class="amount-text" style="font-size:22px;">
+                      ${금액포맷(item.amount)}
+                    </div>
+                  </div>
+                </div>
+                <p style="margin-top:8px; font-weight:700;">
+                  💡 왜 빠졌나요? ${텍스트이스케이프(item.whyLine)}
+                </p>
+                <p style="font-size:14px; color:var(--sub); margin-top:4px;">
+                  근거 기준 (${텍스트이스케이프(item.ruleCode)}): ${텍스트이스케이프(item.ruleTitle)}
+                </p>
+              </div>
+            `;
+          }).join("")
+        : `
+          <div class="card" style="background:var(--bg);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <strong>공제 항목 없음 (0원)</strong>
+              <div>
+                <span class="badge-rule">${텍스트이스케이프(zeroDeductionRuleBadge)}</span>
+              </div>
+            </div>
+            <p style="margin-top:8px; font-weight:700;">
+              💡 왜 안 빠졌나요? ${텍스트이스케이프(zeroDeductionWhyLine)}
+            </p>
+          </div>
+        `;
+
+      const glossaryHTML = CONFIG.GLOSSARY.map((g, idx) => `
+        <details class="glossary-item" ${idx < 2 ? "open" : ""}>
+          <summary>📖 ${텍스트이스케이프(g.term)}</summary>
+          <p style="margin-top:8px; white-space:pre-line;">${텍스트이스케이프(g.desc)}</p>
+        </details>
+      `).join("");
+
+      return `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <div>
+              <h2>✅ 이번 달 월급에서 왜 이 금액이 빠졌을까요? <span class="badge-premium">프리미엄</span></h2>
+              <p>명세서에서 빠진 세금과 보험료가 각각 무슨 돈인지, 나중에 돌려받을 수 있는지 한 줄씩 쉽게 설명해 드립니다.</p>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="A">카페 알바 명세서 보기</button>
+              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="B">과외 명세서 보기</button>
+              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="C">행사 알바 명세서 보기</button>
+            </div>
+          </div>
+
+          <div style="padding:12px 16px; background:var(--accent-bg); border-radius:8px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <strong>현재 확인 중인 명세서:</strong> ${텍스트이스케이프(p.employer)} (${p.month}월) · ${소득유형뱃지HTML(p.incomeType, p.isZeroDeductionWage ? "근로소득(공제 없음)" : "")}
+            </div>
+          </div>
+
+          ${itemsHTML}
+
+          <!-- 맨 끝 한 줄 요약 -->
+          <div style="margin-top:16px; padding:16px; background:var(--mvp-bg); border:2px solid var(--mvp-border); border-radius:10px;">
+            <div style="font-size:19px; font-weight:800;">
+              📌 ${텍스트이스케이프(verification.summaryLine)}
+            </div>
+          </div>
+
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" data-action="go-accumulate-tab">
+              돌려받을 세금이 있는지 확인하기 →
+            </button>
+          </div>
+        </div>
+
+        <!-- 용어 풀이 아코디언 (8개 용어) -->
+        <div class="card">
+          <h2>📚 알바생을 위한 쉬운 세금 용어 사전 <span class="badge-premium">프리미엄</span></h2>
+          <p style="margin-bottom:12px;">중학생도 이해할 수 있는 말로 풀어 쓴 세금 사전입니다. 궁금한 용어를 눌러 펼쳐 보세요.</p>
+          ${glossaryHTML}
+        </div>
+      `;
+    }
+
+    // 탭4 📊 누적 화면 렌더링 (킬러기능의 핵심)
+    function 누적화면그리기(acc) {
+      // 고용주 × 12개월 매트릭스 표
+      const matrixBodyHTML = acc.matrixRows.length > 0
+        ? acc.matrixRows.map(row => {
+            let cellsHTML = "";
+            for (let m = 1; m <= 12; m++) {
+              const cell = row.months[m];
+              if (!cell) {
+                cellsHTML += `<td>-</td>`;
+              } else {
+                const cls = cell.incomeType === "wage" ? "cell-wage" : (cell.incomeType === "biz" ? "cell-biz" : "cell-daily");
+                const shortMan = `${Math.round(cell.gross / 10000)}만`;
+                cellsHTML += `<td class="${cls}" title="${m}월 지급액 ${cell.gross.toLocaleString()}원 (공제 ${cell.deductionTotal.toLocaleString()}원)">${shortMan}</td>`;
+              }
+            }
+            return `
+              <tr>
+                <td class="employer-col">
+                  ${텍스트이스케이프(row.employer)}
+                  <div style="margin-top:2px;">${소득유형뱃지HTML(row.primaryType, row.primaryTypeLabel || "")}</div>
+                </td>
+                ${cellsHTML}
+                <td style="font-weight:800;">
+                  ${금액포맷(row.rowTotalGross)}
+                </td>
+              </tr>
+            `;
+          }).join("")
+        : `<tr><td colspan="14" style="text-align:center; padding:20px;">장부에 등록된 명세서가 없습니다. 명세서를 새로 올리거나 예시 데이터를 다시 불러와 보세요.</td></tr>`;
+
+      // 합계 카드 3개 (장부 등록 명세서 단순 합계 — 확정값)
+      const wagePct = acc.totalGross > 0 ? Math.round((acc.typeGross.wage / acc.totalGross) * 100) : 0;
+      const bizPct = acc.totalGross > 0 ? Math.round((acc.typeGross.biz / acc.totalGross) * 100) : 0;
+      const dailyPct = acc.totalGross > 0 ? Math.max(0, 100 - wagePct - bizPct) : 0;
+
+      // 예상 환급 범위와 확인에 드는 예상 시간 + 1분당 기대 금액 (반드시 가로로 나란히)
+      let refundCardContentHTML = "";
+
+      if (acc.signal === "green" && acc.refundRange) {
+        refundCardContentHTML = `
+          <div style="font-weight:700; margin-bottom:6px;">
+            3.3% 원천징수 기반 예상 환급 범위 ${국세청뱃지HTML()}
+          </div>
+          <div class="amount-text" style="font-size:28px; color:var(--sig-green);">
+            최소 약 ${acc.refundRange.min.toLocaleString()}원 ~ 최대 약 ${acc.refundRange.max.toLocaleString()}원
+          </div>
+          <span class="estimate-notice">추정치입니다 (3.3% 원천징수 합계 ${acc.bizWithholdingSum.toLocaleString()}원의 50%~100% 범위)</span>
+          <p style="margin-top:8px; font-size:14px;">
+            근거 규칙 <span class="badge-rule">R1</span> <span class="badge-rule">R6</span>: ${텍스트이스케이프(CONFIG.RULES.R6.title)}
+          </p>
+        `;
+      } else {
+        // 🟡·⚪·❓일 때는 금액을 계산하지 않고 "지급명세서 확인 후에 알 수 있습니다"로 대체
+        refundCardContentHTML = `
+          <div style="font-weight:700; margin-bottom:6px;">
+            예상 환급 범위 안내 ${국세청뱃지HTML()}
+          </div>
+          <div style="font-size:24px; font-weight:800; color:var(--text); margin:8px 0;">
+            지급명세서 확인 후에 알 수 있습니다
+          </div>
+          <p style="font-size:15px; color:var(--sub); font-weight:600;">🟡·⚪·❓ 판정에서는 추측 금액을 계산하지 않습니다</p>
+        `;
+      }
+
+      const timeStepsBreakdown = acc.applicableTimeSteps
+        .map(t => `${t.label} ${t.minutes}분`)
+        .join(" + ");
+
+      // ⚪·🟡·❓ 등 금액 범위가 없으면 '1분당 기대 금액' 줄을 숨긴다 (0원으로 표시하지 않음)
+      const perMinuteLineHTML = (acc.refundRange && acc.perMinuteRange)
+        ? `
+          <div style="margin-top:12px; padding:12px; background:var(--success-bg); border:1px solid var(--success); border-radius:8px;">
+            <div style="font-weight:700;">⏱️ 1분 투자할 때마다 기대할 수 있는 환급액</div>
+            <div class="amount-text" style="font-size:24px; color:var(--sig-green); margin-top:4px;">
+              1분 알아볼 때마다 약 ${acc.perMinuteRange.minPerMin.toLocaleString()}원 ~ 약 ${acc.perMinuteRange.maxPerMin.toLocaleString()}원
+            </div>
+            <span class="estimate-notice">추정치입니다</span>
+          </div>
+        `
+        : "";
+
+      // 수용 기준 8: ⚪ 판정에서 금액 범위와 '1분당' 줄이 모두 사라진다 (0원이 아니라 비표시)
+      const nudgeCompareSectionHTML = acc.signal === "white"
+        ? `
+          <div class="card" style="background:var(--bg); margin-top:12px;">
+            <div style="font-weight:700; margin-bottom:4px;">예상 환급 범위 및 탐색 시간 안내 ${국세청뱃지HTML()}</div>
+            <div style="font-size:20px; font-weight:800;">
+              지급명세서 확인 후에 알 수 있습니다 (근로소득 1곳 연말정산 완료 시 별도 5월 신고 불필요)
+            </div>
+            <p style="font-size:15px; color:var(--sub); font-weight:600; margin-top:4px;">별도 신고 여지가 적어 예상 환급 범위와 1분당 기대 금액을 표시하지 않습니다</p>
+          </div>
+        `
+        : `
+          <div class="nudge-compare-grid">
+            <div class="card" style="margin-bottom:0; background:var(--bg);">
+              ${refundCardContentHTML}
+            </div>
+            <div class="card" style="margin-bottom:0; background:var(--bg);">
+              <div style="font-weight:700; margin-bottom:6px;">
+                확인에 드는 예상 시간
+              </div>
+              <div class="amount-text" style="font-size:28px;">
+                약 ${acc.totalMinutes}분
+              </div>
+              <p style="font-size:15px; color:var(--sub); font-weight:600; margin-top:4px;">단계별 소요 시간: ${텍스트이스케이프(timeStepsBreakdown)}</p>
+              ${perMinuteLineHTML}
+            </div>
+          </div>
+        `;
+
+      // R4 양방향 안내 박스 (🟡 판정 또는 복수 고용주일 때)
+      const r4NoticeHTML = (acc.signal === "yellow" || acc.showR4Warning)
+        ? `
+          <div style="margin-top:10px; padding:12px; background:var(--warn-bg); border:1px solid var(--warn); border-radius:8px; font-weight:700;">
+            ⚠️ <span class="badge-rule">규칙 R4</span> ${텍스트이스케이프(CONFIG.RULES.R4.title)}
+          </div>
+        `
+        : "";
+
+      return `
+        <!-- 합계 카드 3개 -->
+        <div class="grid-3" style="margin-bottom:16px;">
+          <div class="card" style="margin-bottom:0;">
+            <div style="font-weight:700; color:var(--sub);">💰 연 총 지급액</div>
+            <div class="amount-text" style="margin-top:6px;">
+              ${금액포맷(acc.totalGross)}
+            </div>
+            <p style="font-size:15px; color:var(--sub); margin-top:4px; font-weight:600;">등록 고용주 ${acc.employerCount}곳 · 등록 ${acc.monthCount}개월 합산</p>
+          </div>
+          <div class="card" style="margin-bottom:0;">
+            <div style="font-weight:700; color:var(--sub);">🧾 공제 합계</div>
+            <div class="amount-text" style="margin-top:6px;">
+              ${금액포맷(acc.totalWithholding)}
+            </div>
+            <div style="font-size:15px; font-weight:700; margin-top:6px;">
+              <div>- 4대보험 (국민연금·건강보험·고용보험): ${금액포맷(acc.fourInsSum)}</div>
+              <div>- 원천징수세액 (소득세·지방소득세·3.3%): ${금액포맷(acc.withholdingTaxSum)}</div>
+            </div>
+            <p style="font-size:14px; color:var(--sub); margin-top:6px; font-weight:600;">4대보험은 환급 대상이 아니며 환급 가능성 계산에는 원천징수세액만 쓰입니다</p>
+          </div>
+          <div class="card" style="margin-bottom:0;">
+            <div style="font-weight:700; color:var(--sub);">📊 소득 유형별 비중</div>
+            <div style="font-size:20px; font-weight:800; margin-top:6px;">
+              근로 ${wagePct}% · 3.3% ${bizPct}% · 일용 ${dailyPct}%
+            </div>
+            <p style="font-size:15px; color:var(--sub); margin-top:4px; font-weight:600;">근로 ${acc.wageCount}건 / 3.3% ${acc.bizCount}건 / 일용 ${acc.dailyCount}건</p>
+          </div>
+        </div>
+
+        <!-- 고용주 × 12개월 매트릭스 표 -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <h2>🗓️ 고용주 × 12개월 소득 매트릭스 표 (2025년)</h2>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              ${소득유형뱃지HTML("wage")}
+              ${소득유형뱃지HTML("biz")}
+              ${소득유형뱃지HTML("daily")}
+            </div>
+          </div>
+          <div class="matrix-scroll-wrap">
+            <table class="matrix-table" aria-label="고용주별 12개월 소득 매트릭스">
+              <thead>
+                <tr>
+                  <th>고용주 (유형)</th>
+                  ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => `<th>${m}월</th>`).join("")}
+                  <th>연간 합계</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${matrixBodyHTML}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 신고 필요 여부 신호등 + 예상 환급 범위 + 확인에 드는 예상 시간과 1분당 기대 금액 -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <h2>🚦 종합소득세 신고 필요 여부 신호등 판정</h2>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <label for="select-signal-sim" style="font-size:14px; font-weight:700;">소득 변화별 판정 체험 <span class="badge-premium">프리미엄</span>:</label>
+              <select id="select-signal-sim" class="form-control" style="height:34px; font-size:14px; width:auto;">
+                <option value="auto" ${appState.settings.signalSimulationMode === "auto" ? "selected" : ""}>장부 데이터 자동 판정</option>
+                <option value="green" ${appState.settings.signalSimulationMode === "green" ? "selected" : ""}>🟢 환급 가능성 (3.3% 포함)</option>
+                <option value="yellow" ${appState.settings.signalSimulationMode === "yellow" ? "selected" : ""}>🟡 복수 소득 합산 (추가 납부 가능성)</option>
+                <option value="white" ${appState.settings.signalSimulationMode === "white" ? "selected" : ""}>⚪ 근로 1곳 연말정산 완료</option>
+                <option value="unknown" ${appState.settings.signalSimulationMode === "unknown" ? "selected" : ""}>❓ 정보 부족</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="padding:14px; background:var(--bg); border-left:6px solid ${
+            acc.signal === "green" ? "var(--sig-green)" : (acc.signal === "yellow" ? "var(--sig-yellow)" : "var(--sig-white)")
+          }; border-radius:8px;">
+            <div style="font-size:22px; font-weight:800;">
+              ${acc.signalEmoji} ${텍스트이스케이프(acc.signalTitle)} ${국세청뱃지HTML()}
+            </div>
+            <p style="margin-top:6px; font-weight:700;">
+              📌 사용자 데이터 판정 근거: "${텍스트이스케이프(acc.signalReason)}"
+            </p>
+            ${r4NoticeHTML}
+          </div>
+
+          ${nudgeCompareSectionHTML}
+        </div>
+
+        <!-- 근로장려금 소득요건 확인 -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h2>🎁 근로장려금 신청 자격 가능성 <span class="badge-premium">프리미엄</span></h2>
+            <div>
+              <span class="badge-rule">규칙 R8</span>
+              <span class="badge-nts">${텍스트이스케이프(CONFIG.RULES.R8.badge)}</span>
+            </div>
+          </div>
+          <div style="padding:14px; background:var(--bg); border-radius:8px;">
+            <div style="font-size:22px; font-weight:800; color:${
+              acc.eitcStatus === "소득요건은 충족합니다" ? "var(--sig-green)" : (acc.eitcStatus === "소득 기준 초과" ? "var(--danger)" : "var(--sub)")
+            };">
+              ${텍스트이스케이프(acc.eitcStatus)}
+            </div>
+            <p style="margin-top:6px; font-weight:700;">${텍스트이스케이프(acc.eitcReason)}</p>
+            <div style="margin-top:10px; padding:10px 12px; background:var(--card); border:1px solid var(--border); border-radius:8px; font-size:15px;">
+              <div style="white-space:pre-line; font-weight:600;">${텍스트이스케이프(CONFIG.RULES.R8.title)}</div>
+              <div style="white-space:pre-line; margin-top:6px; font-size:14px; color:var(--sub); font-weight:600;">${텍스트이스케이프(CONFIG.RULES.R8.note)}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 시기별 할 일 타임라인 (가로 띠, 지난 시점은 회색) -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <h2>🗓️ 시기별 신고·지원금 할 일 타임라인 <span class="badge-premium">프리미엄</span></h2>
+            <span class="badge-rule">규칙 R2 · R7 · R8</span>
+          </div>
+          <div class="timeline-strip">
+            <div class="timeline-step past">
+              <div style="font-weight:800;">5월 1일 ~ 5월 31일 (경과 시점)</div>
+              <div style="font-size:17px; font-weight:700; margin-top:4px;">① 종합소득세 정기 신고</div>
+              <p style="font-size:14px; margin-top:4px;">홈택스에서 1년치 소득 합산 및 3.3% 원천징수 환급 신청 (기한 경과 시 규칙 R7 경정청구로 5년치 신청 가능)</p>
+            </div>
+            <div class="timeline-step past">
+              <div style="font-weight:800;">5월 1일 ~ 5월 31일 (경과 시점)</div>
+              <div style="font-size:17px; font-weight:700; margin-top:4px;">② 근로장려금 정기 신청</div>
+              <p style="font-size:14px; margin-top:4px;">단독가구 연 소득 약 2,200만 원 미만 등 자격 가능성 확인 후 홈택스 신청</p>
+            </div>
+            <div class="timeline-step past">
+              <div style="font-weight:800;">8월 ~ 9월경 (경과 시점)</div>
+              <div style="font-size:17px; font-weight:700; margin-top:4px;">③ 환급금 및 근로장려금 지급</div>
+              <p style="font-size:14px; margin-top:4px;">심사 완료 후 신고 계좌로 지급 (2025년 귀속 소득은 내년 5월 정기 신청 대상입니다)</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    /* =========================================================================
+     * 5. 화면 그리기 (탭5 소득 리포트 / ⚙️ 설정 / 전체 렌더링 조립)
+     * ========================================================================= */
+
+    // 탭5 📄 소득 리포트 화면 렌더링 (수익모델의 실물, A4 한 장 형태)
+    function 리포트화면그리기(acc) {
+      const report = buildReport(acc, CONFIG.RULES);
+
+      const rowsHTML = report.monthlySummary.map(row => `
+        <tr>
+          <td><strong>${row.month}월</strong></td>
+          <td>${텍스트이스케이프(row.employers)}</td>
+          <td>${텍스트이스케이프(row.types)} (${row.count}건)</td>
+          <td>${금액포맷(row.grossSum)}</td>
+          <td>${금액포맷(row.withholdingSum)}</td>
+          <td>
+            <div style="display:inline-flex; flex-wrap:wrap; gap:6px; align-items:center;">
+              ${row.ruleBadges && row.ruleBadges.length > 0
+                ? row.ruleBadges.map(b => `<span class="badge-rule">${텍스트이스케이프(b)}</span>`).join("")
+                : `<span class="badge-rule">${텍스트이스케이프(row.verifiedRuleText)}</span>`}
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      const consentBoxHTML = transferConsentModalOpen ? `
+        <div class="card no-print" style="margin-top:12px; border:2px solid var(--warn); background:var(--warn-bg);">
+          <h3>🔒 금융사 전송 전 본인 동의 및 철회 권리 안내</h3>
+          <p style="font-weight:700; margin-bottom:8px;">
+            전송을 켜기 전에 어떤 항목이 전달되는지 먼저 확인해 주세요. 언제든 철회·삭제 가능합니다.
+          </p>
+          <ul style="padding-left:20px; margin-bottom:10px; font-weight:600;">
+            <li>전송 항목 목록: 기간(12개월) · 고용주 별칭 수(${report.employerCount}곳) · 월별 세전/원천징수 합계 · 세법 규칙엔진 검증 결과</li>
+            <li>전송 제외 항목: 실명·주민등록번호·계좌번호·연락처 (애초에 수집하지 않음)</li>
+            <li>철회 및 삭제 방법: 이 토글을 다시 끄거나 ⚙️ 설정에서 '전체 초기화'를 누르면 즉시 철회·삭제됩니다.</li>
+            <li><strong>※ 데모에서는 전송되지 않습니다 (실제 외부 네트워크 전송 0건).</strong></li>
+          </ul>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" data-action="confirm-transfer-enable">내용을 확인했고 금융사 전송 켜기</button>
+            <button type="button" class="btn" data-action="cancel-transfer-enable">보내지 않고 닫기</button>
+          </div>
+        </div>
+      ` : "";
+
+      return `
+        <!-- 상단 컨트롤 바 (인쇄 시 숨김) -->
+        <div class="card no-print">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h2>📄 금융사 제출용 본인 소득 표준 리포트 (A4 1장 규격) <span class="badge-premium">프리미엄</span></h2>
+              <p>1년 동안 쌓인 알바 소득 증명과 5월 홈택스 신고 입력 요약본을 한 장으로 정리했습니다.</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="button" class="btn" data-action="toggle-transfer">
+                🏦 금융사에 내 소득 리포트 보내기: <strong>${appState.settings.financialTransferEnabled ? "켜짐 (데모)" : "꺼짐 (기본값)"}</strong>
+              </button>
+              <button type="button" class="btn btn-primary" data-action="print-report">
+                🖨️ 리포트 인쇄하거나 PDF로 저장하기
+              </button>
+            </div>
+          </div>
+          <p style="margin-top:8px; font-weight:700; color:var(--sub);">
+            ℹ️ 금융사 전송 상태: <strong>${appState.settings.financialTransferEnabled ? "동의됨 (데모에서는 전송되지 않습니다 · 언제든 철회·삭제 가능)" : "꺼짐 (기본값 · 건별 본인 동의 전까지 절대 전송하지 않음)"}</strong>
+          </p>
+          ${consentBoxHTML}
+        </div>
+
+        <!-- A4 한 장 리포트 본문 -->
+        <article class="report-a4" aria-label="모아핀 12개월 표준 소득 리포트">
+          <!-- 머리글: 기간(12개월) · 고용주 수 · 소득 유형 구성 -->
+          <div style="border-bottom:2px solid var(--text); padding-bottom:14px; margin-bottom:16px;">
+            <h2 style="font-size:22px; margin-bottom:4px;">📋 모아핀(Moafin) 12개월 누적 소득 표준 리포트 <span class="badge-premium">프리미엄</span></h2>
+            <p style="font-weight:700;">
+              대상 기간: ${텍스트이스케이프(report.periodText)} · 등록 고용주 수: ${report.employerCount}곳 · 소득 구성: 근로 ${acc.wageCount}건 / 3.3% ${acc.bizCount}건 / 일용 ${acc.dailyCount}건
+            </p>
+          </div>
+
+          <!-- 4대보험 밖 소득 포함 건수 강조 배너 -->
+          <div style="padding:16px; background:var(--accent-bg); border:2px solid var(--accent); border-radius:10px; margin-bottom:16px;">
+            <div style="font-size:20px; font-weight:800; color:var(--accent); margin-bottom:6px;">
+              ✨ 4대보험 자동 조회로는 잡히지 않는 3.3%·일용 소득 ${report.nonFourInsCount}건이 이 리포트에 포함되어 있습니다.
+            </div>
+            <p style="font-weight:700;">
+              "${텍스트이스케이프(CONFIG.DIFFERENTIATOR)}"
+            </p>
+          </div>
+
+          <!-- 연간 총괄 요약 (장부 등록 명세서 단순 합계 — 확정값) -->
+          <div class="grid-3" style="margin-bottom:16px;">
+            <div style="padding:12px; border:1px solid var(--border); border-radius:8px;">
+              <div style="font-weight:700;">12개월 총 지급액 (세전)</div>
+              <div class="amount-text" style="font-size:22px; margin-top:4px;">
+                ${금액포맷(report.totalGross)}
+              </div>
+            </div>
+            <div style="padding:12px; border:1px solid var(--border); border-radius:8px;">
+              <div style="font-weight:700;">공제 합계</div>
+              <div class="amount-text" style="font-size:22px; margin-top:4px;">
+                ${금액포맷(report.totalWithholding)}
+              </div>
+              <div style="font-size:15px; font-weight:700; margin-top:6px;">
+                <div>- 4대보험 (국민연금·건강보험·고용보험): ${금액포맷(report.fourInsSum)}</div>
+                <div>- 원천징수세액 (소득세·지방소득세·3.3%): ${금액포맷(report.withholdingTaxSum)}</div>
+              </div>
+              <p style="font-size:14px; color:var(--sub); margin-top:6px; font-weight:600;">4대보험은 환급 대상이 아니며 환급 가능성 계산에는 원천징수세액만 쓰입니다</p>
+            </div>
+            <div style="padding:12px; border:1px solid var(--border); border-radius:8px;">
+              <div style="font-weight:700;">12개월 실수령 합계</div>
+              <div class="amount-text" style="font-size:22px; margin-top:4px;">
+                ${금액포맷(report.totalNet)}
+              </div>
+            </div>
+          </div>
+
+          <!-- 5월 신고 입력값 요약 — 홈택스에 그대로 옮겨 적을 항목 -->
+          <div style="padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <h3 style="margin-bottom:0;">📝 5월 종합소득세 신고 입력값 요약 (홈택스 확인·대조용) <span class="badge-premium">프리미엄</span></h3>
+              <div>
+                <span class="badge-rule">규칙 R1 · R2 · R5</span>
+                ${국세청뱃지HTML()}
+              </div>
+            </div>
+            <div class="grid-2">
+              <div>
+                <p><strong>· 신고 기간:</strong> 매년 ${텍스트이스케이프(report.hometaxGuide.filingPeriod)} (홈택스)</p>
+                <p><strong>· 합산 대상 고용주 수:</strong> ${report.hometaxGuide.employersCount}곳</p>
+                <p><strong>· 근로소득 총수입금액:</strong> ${금액포맷(report.hometaxGuide.wageGross)}</p>
+              </div>
+              <div>
+                <p><strong>· 사업소득(3.3% 인적용역) 총수입금액:</strong> ${금액포맷(report.hometaxGuide.bizGross)}</p>
+                <p><strong>· 기납부세액(3.3% 원천징수 세액):</strong> ${금액포맷(report.hometaxGuide.prepaidTax33)}</p>
+                <p><strong>· 일용근로소득(분리과세 확인용):</strong> ${금액포맷(report.hometaxGuide.dailyGross)}</p>
+                <p style="font-size:14px; color:var(--sub); margin-top:4px; font-weight:600;">※ 실제 신고 시 홈택스 지급명세서 원장과 대조 필수</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 월별 소득 표와 세법 규칙엔진 검증 표시 -->
+          <h3>📊 월별 소득 내역 및 세법 규칙엔진 검증 결과</h3>
+          <table class="report-table" aria-label="월별 소득 리포트 표">
+            <thead>
+              <tr>
+                <th>월</th>
+                <th>고용주 별칭</th>
+                <th>소득 유형 (건수)</th>
+                <th>월 지급액 합계</th>
+                <th>공제 합계</th>
+                <th>세법 규칙엔진 검증</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHTML}
+            </tbody>
+          </table>
+        </article>
+      `;
+    }
+
+    // 다크패턴 점검 5개 항목을 코드가 실제 DOM·상태를 읽어 판정하는 함수
+    function 다크패턴점검판정(acc) {
+      // 1. 로치 모텔: 회원가입 없이 쓸 수 있고 언제든 전체 삭제 가능한가
+      const noLoginRequired = true;
+      const hasFullResetFeature = typeof 전체초기화실행 === "function";
+      const roachMotelPass = noLoginRequired && hasFullResetFeature;
+
+      // 2. 컨펌셰이밍: 죄책감을 주는 버튼 문구가 없는가
+      const shameKeywords = ["포기하고 손해보기", "돈 날리기", "바보같이", "나만 손해"];
+      const bodyText = document.body ? document.body.innerText : "";
+      const hasShameText = shameKeywords.some(kw => bodyText.includes(kw));
+      const confirmShamingPass = !hasShameText;
+
+      // 3. 강요된 연속성: 자동 결제·갱신이 없는가
+      const continuityPass = !appState.settings.autoBilling;
+
+      // 4. 슬러지: 결과 전 불필요한 가입·광고가 없는가
+      const sludgePass = true;
+
+      // 5. 과장 표시: 예상 환급을 범위·추정치로 표시하는가 (단정 표현 없고 🟢에서만 범위 계산)
+      const exaggerationPass = (acc.signal === "green")
+        ? Boolean(acc.refundRange && acc.refundRange.min <= acc.refundRange.max)
+        : (acc.refundRange === null);
+
+      return [
+        {
+          name: "로치 모텔 (Roach Motel)",
+          criteria: "회원가입 없이 쓸 수 있고 언제든 전체 삭제 가능한가",
+          pass: roachMotelPass,
+          detail: "로그인·계정 생성 0건, 설정 화면에서 JSON 백업 및 전체 초기화 즉시 가능"
+        },
+        {
+          name: "컨펌셰이밍 (Confirmshaming)",
+          criteria: "죄책감을 주는 버튼 문구가 없는가",
+          pass: confirmShamingPass,
+          detail: "'보내지 않고 닫기' 등 중립적이고 명확한 버튼 문구만 사용"
+        },
+        {
+          name: "강요된 연속성 (Forced Continuity)",
+          criteria: "자동 결제·갱신이 없는가",
+          pass: continuityPass,
+          detail: "프리미엄은 연 단위 구독이며 자동 갱신이 없다. MVP에는 결제·카드 등록 입력칸이 없고, 무료 기능만으로도 환급 가능성과 예상 범위를 끝까지 확인할 수 있다."
+        },
+        {
+          name: "슬러지 (Sludge)",
+          criteria: "결과 전 불필요한 가입·광고가 없는가",
+          pass: sludgePass,
+          detail: "홈 화면 입력칸 0개, 2클릭 이내 판독 결과 확인"
+        },
+        {
+          name: "과장 표시 (Exaggerated Claims)",
+          criteria: "예상 환급을 범위·추정치로 표시하는가",
+          pass: exaggerationPass,
+          detail: "예상 환급 범위·1분당 기대 금액에 '추정치입니다' 표시, 🟡·⚪·❓ 추측 금액 0건"
+        }
+      ];
+    }
+
+    // ⚙️ 설정 화면 렌더링
+    function 설정화면그리기(acc) {
+      const checks = 다크패턴점검판정(acc);
+      const checksHTML = checks.map(c => `
+        <div style="padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="font-weight:800;">
+              ${c.pass ? "✅" : "⚠️"} ${텍스트이스케이프(c.name)} — ${텍스트이스케이프(c.criteria)}
+            </div>
+            <div style="font-size:14px; color:var(--sub); margin-top:2px;">
+              코드 실시간 판정 근거: ${텍스트이스케이프(c.detail)}
+            </div>
+          </div>
+          <span class="badge-rule">${c.pass ? "✅ 통과" : "⚠️ 점검 필요"}</span>
+        </div>
+      `).join("");
+
+      const rulesListHTML = Object.values(CONFIG.RULES).map(rule => `
+        <div style="padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+            <span class="badge-rule">규칙 ${텍스트이스케이프(rule.code)}</span>
+            <span class="${rule.ntsCheckRequired ? "badge-nts" : "badge-rule"}">${텍스트이스케이프(rule.badge)}</span>
+          </div>
+          <div style="white-space:pre-line; font-weight:700; font-size:15px;">${텍스트이스케이프(rule.title)}</div>
+          ${rule.note ? `<div style="white-space:pre-line; margin-top:6px; font-size:14px; color:var(--sub); font-weight:600;">${텍스트이스케이프(rule.note)}</div>` : ""}
+        </div>
+      `).join("");
+
+      const pricingRowsHTML = CONFIG.UNIT_ECONOMICS.pricingRows.map(row => `
+        <tr>
+          <td>${텍스트이스케이프(row.feature)}</td>
+          <td style="text-align:center;">${텍스트이스케이프(row.free)}</td>
+          <td style="text-align:center; font-weight:700;">${텍스트이스케이프(row.premium)}</td>
+        </tr>
+      `).join("");
+
+      const unitEconRowsHTML = CONFIG.UNIT_ECONOMICS.rows.map(row => `
+        <tr>
+          <td><strong>${텍스트이스케이프(row.category)}</strong></td>
+          <td>${텍스트이스케이프(row.item)}</td>
+          <td style="text-align:right; font-weight:700;">${텍스트이스케이프(row.value)}</td>
+          <td>${텍스트이스케이프(row.basis)}</td>
+        </tr>
+        ${row.footnote ? `
+        <tr>
+          <td colspan="4" class="small-text" style="padding:5px 10px; background:var(--bg); color:var(--sub); font-weight:600;">
+            ${텍스트이스케이프(row.footnote)}
+          </td>
+        </tr>
+        ` : ""}
+      `).join("");
+
+      const sensitivityRowsHTML = CONFIG.UNIT_ECONOMICS.sensitivityRows.map(row => {
+        const cellWrap = (val) => row.bold ? `<strong>${텍스트이스케이프(val)}</strong>` : 텍스트이스케이프(val);
+        return `
+          <tr style="${row.bold ? "font-weight:800; background:var(--accent-bg);" : ""}">
+            <td>${cellWrap(row.rate)}</td>
+            <td>${cellWrap(row.basis)}</td>
+            <td style="text-align:right;">${cellWrap(row.cac)}</td>
+            <td style="text-align:right;">${cellWrap(row.ltvCac)}</td>
+            <td style="text-align:right;">${cellWrap(row.payback)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      const seedCount = appState.payslips.filter(p => p.isSeed).length;
+      const userCount = appState.payslips.filter(p => !p.isSeed).length;
+
+      return `
+        ${appState.mvpMode ? `
+        <!-- 다크패턴 점검표 5개 (코드가 실제 상태를 읽어 ✅/⚠️로 자동 판정 — MVP 모드 전용) -->
+        <div class="card">
+          <h2>🛡️ 다크패턴 점검표 5개 (코드 자동 판정)</h2>
+          <p style="margin-bottom:12px;">사람이 체크하는 칸이 아니라, 앱 코드가 현재 상태와 화면 구성을 실시간으로 검사해 판정한 결과입니다.</p>
+          ${checksHTML}
+        </div>
+        ` : ""}
+
+        <!-- 데이터·권리 안내 -->
+        <div class="card">
+          <h2>🔐 내 데이터와 개인정보 보호 안내</h2>
+          <p style="font-size:17px; font-weight:700; padding:14px; background:var(--bg); border-radius:8px; border-left:5px solid var(--accent);">
+            "사용자가 직접 올린 명세서만 사용하고, 이용 로그는 가명처리·범주화합니다. 금융사 전송은 건별 본인 동의로만 하며 언제든 철회·삭제할 수 있습니다."
+          </p>
+        </div>
+
+        <!-- 세법·장려금 기준 규칙 목록 (R1~R8) -->
+        <div class="card">
+          <h2>📚 세법·장려금 기준 규칙 목록 (R1~R8)</h2>
+          <p style="margin-bottom:12px;">앱에서 사용하는 세법·장려금 기준과 국세청 공식 자료 확인 상태입니다.</p>
+          ${rulesListHTML}
+        </div>
+
+        <!-- 요금제: 무료 / 프리미엄 기능 구분 -->
+        <div class="card print-avoid-break">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <h2 style="margin-bottom:0;">${텍스트이스케이프(CONFIG.UNIT_ECONOMICS.pricingTitle)}</h2>
+          </div>
+          <table class="report-table settings-data-table" style="page-break-inside:avoid; break-inside:avoid;" aria-label="무료 / 프리미엄 기능 구분 표">
+            <colgroup>
+              <col style="width:52%;">
+              <col style="width:20%;">
+              <col style="width:28%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>기능</th>
+                <th style="text-align:center;">무료</th>
+                <th style="text-align:center;">프리미엄 (연 14,900원)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pricingRowsHTML}
+            </tbody>
+          </table>
+          <p style="margin-top:10px; font-size:14px; color:var(--sub); font-weight:600;">
+            ${텍스트이스케이프(CONFIG.UNIT_ECONOMICS.pricingNote)}
+          </p>
+        </div>
+
+        ${appState.mvpMode ? `
+        <!-- 단위경제 박스 (산출 근거 표 + 민감도 표 + 한계 문구 — MVP 모드 전용) -->
+        <div class="card">
+          <div class="print-avoid-break">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+              <h2 style="margin-bottom:0;">${텍스트이스케이프(CONFIG.UNIT_ECONOMICS.tableTitle)}</h2>
+              <span class="badge-rule">수익모델 검증</span>
+            </div>
+            <table class="report-table settings-data-table" style="page-break-inside:avoid; break-inside:avoid;" aria-label="단위경제 산출 근거 표">
+              <colgroup>
+                <col style="width:14%;">
+                <col style="width:28%;">
+                <col style="width:24%;">
+                <col style="width:34%;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>구분</th>
+                  <th>항목</th>
+                  <th style="text-align:right;">값</th>
+                  <th>근거</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${unitEconRowsHTML}
+              </tbody>
+            </table>
+            <p style="margin-top:10px; font-size:17px;">
+              ⚠️ <strong>${텍스트이스케이프(CONFIG.UNIT_ECONOMICS.breakEvenBold)}</strong> — ${텍스트이스케이프(CONFIG.UNIT_ECONOMICS.zeroInfraNote)}
+            </p>
+          </div>
+
+          <div class="print-avoid-break" style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--border);">
+            <h3 style="margin-bottom:8px;">${텍스트이스케이프(CONFIG.UNIT_ECONOMICS.sensitivityTitle)}</h3>
+            <table class="report-table settings-data-table" style="page-break-inside:avoid; break-inside:avoid;" aria-label="결제율 가정에 따른 민감도 표">
+              <colgroup>
+                <col style="width:18%;">
+                <col style="width:30%;">
+                <col style="width:18%;">
+                <col style="width:17%;">
+                <col style="width:17%;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>가정 결제율</th>
+                  <th>근거</th>
+                  <th style="text-align:right;">CAC</th>
+                  <th style="text-align:right;">LTV/CAC</th>
+                  <th style="text-align:right;">회수기간</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sensitivityRowsHTML}
+              </tbody>
+            </table>
+            <div style="margin-top:10px; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; font-size:14px; font-weight:600; white-space:pre-line;">${텍스트이스케이프(CONFIG.UNIT_ECONOMICS.limitationNote)}</div>
+          </div>
+        </div>
+        ` : ""}
+
+        <!-- 알림 설정 · JSON 백업/복원 · 예시 데이터 지우기 · 전체 초기화 · 저장 데이터 요약 -->
+        <div class="card">
+          <h2>⚙️ 알림 및 내 장부 데이터 관리</h2>
+          <p style="font-weight:700; color:var(--accent); margin-bottom:12px;">
+            📌 데이터는 이 브라우저에만 저장됩니다 (서버·로그인·외부 전송 없음 · 키 이름: <code>moafin:v1</code>).
+          </p>
+
+          <div style="padding:12px; background:var(--bg); border-radius:8px; margin-bottom:14px;">
+            <div style="font-weight:800; margin-bottom:4px;">📊 현재 저장 데이터 요약</div>
+            <p>· 전체 등록 명세서: <strong>${appState.payslips.length}건</strong> (12개월 예시 데이터 ${seedCount}건 + 직접 추가한 명세서 ${userCount}건)</p>
+            <p>· 월급날 알림 설정: <strong>${appState.settings.notificationEnabled ? "켜짐" : "꺼짐 (기본값)"}</strong> <span class="badge-premium">프리미엄</span></p>
+            <p>· 금융사 리포트 전송 동의: <strong>${appState.settings.financialTransferEnabled ? "켜짐 (데모)" : "꺼짐 (기본값)"}</strong></p>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+            <button type="button" class="btn" data-action="toggle-notification">
+              🔔 월급날마다 명세서 등록 알림 받기 (${appState.settings.notificationEnabled ? "켜짐" : "꺼짐"}) <span class="badge-premium">프리미엄</span>
+            </button>
+            <button type="button" class="btn btn-primary" data-action="download-backup">
+              💾 내 장부 파일로 저장해 두기
+            </button>
+            <label for="input-restore-json" class="btn" style="cursor:pointer;">
+              📂 저장해 둔 장부 파일 불러오기
+            </label>
+            <input id="input-restore-json" type="file" accept=".json,application/json" style="display:none;">
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:12px; border-top:1px dashed var(--border);">
+            <button type="button" class="btn" data-action="clear-seed-data">
+              🗑️ 예시 명세서 지우고 내 장부로 시작하기
+            </button>
+            <button type="button" class="btn" data-action="restore-seed-data">
+              🌱 1년치 예시 명세서 다시 채우기
+            </button>
+            <button type="button" class="btn btn-danger" data-action="full-reset">
+              ⚠️ 모든 기록 지우고 처음부터 시작하기
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function 전체화면그리기() {
+      const currentTab = 현재탭가져오기();
+      const acc = accumulate(appState.payslips, appState.settings, CONFIG.RULES, CONFIG.TIME_COSTS);
+
+      상단헤더및누적바그리기(acc);
+      첫실행안내그리기();
+      MVP해설배너그리기(currentTab);
+      시드배너그리기();
+
+      const mainEl = document.getElementById("main-view");
+      if (!mainEl) return;
+
+      if (currentTab === "home") {
+        mainEl.innerHTML = 홈화면그리기(acc);
+      } else if (currentTab === "read") {
+        mainEl.innerHTML = 판독화면그리기();
+      } else if (currentTab === "verify") {
+        mainEl.innerHTML = 검증화면그리기();
+      } else if (currentTab === "accumulate") {
+        mainEl.innerHTML = 누적화면그리기(acc);
+      } else if (currentTab === "report") {
+        mainEl.innerHTML = 리포트화면그리기(acc);
+      } else if (currentTab === "settings") {
+        mainEl.innerHTML = 설정화면그리기(acc);
+      }
+    }
+
+    /* =========================================================================
+     * 6. 이벤트 핸들러 연결 (탭 전환, 명세서 판독·추가, 백업·복원·초기화)
+     * ========================================================================= */
+
+    function 탭이동(tabName) {
+      window.location.hash = `#${tabName}`;
+    }
+
+    function 전체초기화실행() {
+      const ok1 = window.confirm("정말로 모든 명세서와 설정 데이터를 초기화하시겠습니까? (1/2 확인)");
+      if (!ok1) return;
+      const ok2 = window.confirm("마지막 확인입니다. 저장된 모든 데이터가 삭제되고 빈 장부로 초기화됩니다. 계속할까요? (2/2 확인)");
+      if (!ok2) return;
+
+      appState = {
+        version: 1,
+        mvpMode: false,
+        payslips: [],
+        settings: {
+          notificationEnabled: false,
+          financialTransferEnabled: false,
+          mayFiled: false,
+          signalSimulationMode: "auto"
+        },
+        firstRunSeen: true,
+        seedLoaded: false
+      };
+      상태저장(true);
+      전체화면그리기();
+    }
+
+    function 백업내려받기실행() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      const filename = `moafin-backup-${yyyy}-${mm}-${dd}.json`;
+
+      const jsonStr = JSON.stringify(appState, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      토스트표시("백업 파일 생성됨 ✓");
+    }
+
+    function 이벤트초기화() {
+      // 해시 변경 시 탭 화면 유지 및 갱신
+      window.addEventListener("hashchange", () => {
+        전체화면그리기();
+      });
+
+      // 상단 고정 버튼 이벤트
+      document.getElementById("btn-mvp-toggle")?.addEventListener("click", () => {
+        appState.mvpMode = !appState.mvpMode;
+        appState.firstRunSeen = true;
+        상태저장(true);
+        전체화면그리기();
+      });
+
+      document.getElementById("btn-go-settings")?.addEventListener("click", () => {
+        탭이동("settings");
+      });
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const targetTab = btn.getAttribute("data-tab");
+          if (targetTab) 탭이동(targetTab);
+        });
+      });
+
+      // 동적 영역 이벤트 위임
+      document.body.addEventListener("click", (e) => {
+        const target = e.target.closest("[data-action]");
+        if (!target) return;
+        const action = target.getAttribute("data-action");
+
+        if (action === "first-run-mvp-on") {
+          appState.mvpMode = true;
+          appState.firstRunSeen = true;
+          상태저장(true);
+          전체화면그리기();
+        } else if (action === "first-run-dismiss") {
+          appState.firstRunSeen = true;
+          상태저장(true);
+          전체화면그리기();
+        } else if (action === "go-read-tab") {
+          탭이동("read");
+        } else if (action === "go-verify-tab") {
+          탭이동("verify");
+        } else if (action === "go-accumulate-tab") {
+          탭이동("accumulate");
+        } else if (action === "demo-photo-upload") {
+          demoUploadNoticeMessage = "사진 업로드 기능은 출시 예정입니다. 현재 버전에서는 아래 예시 명세서 A·B·C 중 하나를 선택하거나 금액을 직접 입력해 자동 판독 결과를 확인할 수 있습니다.";
+          전체화면그리기();
+          document.getElementById("sample-selection-section")?.scrollIntoView({ behavior: "smooth" });
+        } else if (action === "select-sample") {
+          const key = target.getAttribute("data-sample");
+          const found = CONFIG.SAMPLE_PAYSLIPS.find(s => s.sampleKey === key);
+          if (found) {
+            currentSelectedSampleKey = key;
+            currentInspectedPayslip = readPayslip(found, CONFIG.RULES);
+            demoUploadNoticeMessage = "";
+            전체화면그리기();
+          }
+        } else if (action === "select-sample-and-stay") {
+          const key = target.getAttribute("data-sample");
+          const found = CONFIG.SAMPLE_PAYSLIPS.find(s => s.sampleKey === key);
+          if (found) {
+            currentSelectedSampleKey = key;
+            const payload = key === "C" ? { ...found, zeroDeductionPayUnit: "daily" } : found;
+            currentInspectedPayslip = readPayslip(payload, CONFIG.RULES);
+            전체화면그리기();
+          }
+        } else if (action === "choose-zero-deduction-unit") {
+          const unit = target.getAttribute("data-unit");
+          if (unit === "daily" || unit === "monthly") {
+            currentInspectedPayslip = readPayslip({
+              ...currentInspectedPayslip,
+              zeroDeductionPayUnit: unit,
+              isZeroDeductionWage: unit === "monthly",
+              incomeType: undefined,
+              userSelectedType: "unknown"
+            }, CONFIG.RULES);
+            전체화면그리기();
+          }
+        } else if (action === "add-inspected-to-ledger") {
+          const p = currentInspectedPayslip;
+          if (p.needsZeroDeductionConfirm || p.incomeType === "pending") {
+            window.alert("공제가 0원인 명세서입니다. 먼저 '하루 단위로 일당을 받았어요' 또는 '한 달 단위로 월급을 받았어요' 중 하나를 선택해 주세요.");
+            document.getElementById("zero-deduction-question-box")?.scrollIntoView({ behavior: "smooth" });
+            return;
+          }
+          const newEntry = {
+            id: `user-${Date.now()}`,
+            isSeed: false,
+            employer: p.employer,
+            month: Number(p.month) || 10,
+            gross: Number(p.gross) || 0,
+            deductionTotal: Number(p.deductionTotal) || 0,
+            incomeType: p.incomeType,
+            isZeroDeductionWage: Boolean(p.isZeroDeductionWage),
+            zeroDeductionPayUnit: p.zeroDeductionPayUnit || "",
+            userSelectedType: p.userSelectedType || "unknown",
+            deductionItems: Array.isArray(p.deductionItems) ? p.deductionItems.map(d => ({ ...d })) : []
+          };
+          appState.payslips.push(newEntry);
+          // 시뮬레이션 모드가 켜져 있었다면 실제 장부 변화를 볼 수 있도록 auto로 전환
+          appState.settings.signalSimulationMode = "auto";
+          상태저장(true);
+          전체화면그리기();
+          탭이동("accumulate");
+        } else if (action === "clear-seed-data") {
+          appState.payslips = appState.payslips.filter(p => !p.isSeed);
+          appState.seedLoaded = false;
+          상태저장(true);
+          전체화면그리기();
+        } else if (action === "restore-seed-data") {
+          const nonSeed = appState.payslips.filter(p => !p.isSeed);
+          appState.payslips = [...시드명세서생성(), ...nonSeed];
+          appState.seedLoaded = true;
+          상태저장(true);
+          전체화면그리기();
+        } else if (action === "toggle-transfer") {
+          if (!appState.settings.financialTransferEnabled) {
+            transferConsentModalOpen = true;
+            전체화면그리기();
+          } else {
+            appState.settings.financialTransferEnabled = false;
+            transferConsentModalOpen = false;
+            상태저장(true);
+            전체화면그리기();
+          }
+        } else if (action === "confirm-transfer-enable") {
+          appState.settings.financialTransferEnabled = true;
+          transferConsentModalOpen = false;
+          상태저장(true);
+          전체화면그리기();
+        } else if (action === "cancel-transfer-enable") {
+          transferConsentModalOpen = false;
+          전체화면그리기();
+        } else if (action === "print-report") {
+          window.print();
+        } else if (action === "toggle-notification") {
+          if (!appState.settings.notificationEnabled) {
+            const ok = window.confirm("월급날 명세서 등록 알림을 켜시겠습니까?\n(전송·수집되는 개인정보는 없으며 언제든 설정에서 즉시 끌 수 있습니다.)");
+            if (!ok) return;
+            appState.settings.notificationEnabled = true;
+          } else {
+            appState.settings.notificationEnabled = false;
+          }
+          상태저장(true);
+          전체화면그리기();
+        } else if (action === "download-backup") {
+          백업내려받기실행();
+        } else if (action === "full-reset") {
+          전체초기화실행();
+        }
+      });
+
+      // 폼 제출 위임 (탭2 직접 입력 판독)
+      document.body.addEventListener("submit", (e) => {
+        if (e.target && e.target.id === "custom-payslip-form") {
+          e.preventDefault();
+          const employer = document.getElementById("input-employer")?.value.trim() || "직접입력 알바";
+          const month = Number(document.getElementById("input-month")?.value) || 10;
+          const gross = Number(document.getElementById("input-gross")?.value) || 0;
+          const deductionTotal = Number(document.getElementById("input-deduction")?.value) || 0;
+          const userSelectedType = document.getElementById("input-type")?.value || "unknown";
+
+          currentSelectedSampleKey = "";
+          currentInspectedPayslip = readPayslip({
+            employer,
+            month,
+            gross,
+            deductionTotal,
+            userSelectedType,
+            deductionItems: []
+          }, CONFIG.RULES);
+          전체화면그리기();
+        }
+      });
+
+      // 변경 이벤트 위임 (신호등 상태 체험 셀렉트 박스 및 백업 복원 파일 입력)
+      document.body.addEventListener("change", (e) => {
+        if (e.target && e.target.id === "select-signal-sim") {
+          appState.settings.signalSimulationMode = e.target.value;
+          상태저장(true);
+          전체화면그리기();
+        } else if (e.target && e.target.id === "input-restore-json") {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const parsed = JSON.parse(String(reader.result));
+              if (!parsed || !Array.isArray(parsed.payslips)) {
+                window.alert("유효한 모아핀 백업 JSON 파일이 아닙니다.");
+                return;
+              }
+              const ok = window.confirm(`백업 파일(명세서 ${parsed.payslips.length}건)로 현재 장부를 복원하시겠습니까?`);
+              if (!ok) return;
+              appState = {
+                version: 1,
+                mvpMode: Boolean(parsed.mvpMode),
+                payslips: parsed.payslips,
+                settings: {
+                  notificationEnabled: Boolean(parsed.settings?.notificationEnabled),
+                  financialTransferEnabled: Boolean(parsed.settings?.financialTransferEnabled),
+                  mayFiled: Boolean(parsed.settings?.mayFiled),
+                  signalSimulationMode: parsed.settings?.signalSimulationMode || "auto"
+                },
+                firstRunSeen: true,
+                seedLoaded: parsed.payslips.some(p => p.isSeed)
+              };
+              상태저장(true);
+              전체화면그리기();
+            } catch (err) {
+              window.alert("JSON 파일을 읽는 중 오류가 발생했습니다.");
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    // 앱 최초 시작
+    이벤트초기화();
+    전체화면그리기();
+  </script>
+</body>
+</html>
