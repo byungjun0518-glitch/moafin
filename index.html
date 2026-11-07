@@ -856,6 +856,13 @@
         word-break: keep-all !important;
       }
     }
+    /* M2 테스트판 보조 스타일 */
+    [hidden] { display: none !important; }
+    .t-btn { white-space: normal; text-align: left; }
+    .t-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; }
+    .t-notice { margin-top: 10px; padding: 12px 14px; background: var(--accent-bg); border: 1px solid var(--accent); border-radius: 8px; font-weight: 700; overflow-wrap: anywhere; }
+    .t-fakedoor-msg { margin-top: 10px; padding: 12px 14px; background: var(--success-bg); border: 1px solid var(--success); border-radius: 8px; font-weight: 700; }
+    .t-footer-card { border: 1px dashed var(--border); }
   </style>
 </head>
 <body>
@@ -883,12 +890,12 @@
 
       <!-- 상단 5개 탭 + 설정 -->
       <nav class="nav-tabs" aria-label="주요 화면 탭">
-        <button type="button" class="tab-btn" data-tab="home">🏠 홈</button>
         <button type="button" class="tab-btn" data-tab="read">🔍 판독</button>
         <button type="button" class="tab-btn" data-tab="verify">✅ 검증</button>
         <button type="button" class="tab-btn" data-tab="accumulate">📊 누적</button>
         <button type="button" class="tab-btn" data-tab="report">📄 소득 리포트</button>
-        <button type="button" class="tab-btn" data-tab="settings">⚙️ 설정</button>
+        <button type="button" class="tab-btn" data-tab="next">➡️ 다음 단계</button>
+        <button type="button" class="tab-btn" data-tab="settings" id="tab-settings">⚙️ 설정</button>
       </nav>
     </header>
 
@@ -1790,7 +1797,73 @@
      *    왜 단일 키와 try/catch를 쓰는가: 브라우저 저장소 접근이 차단되거나
      *    손상된 JSON이 들어 있어도 절대 흰 화면이 뜨지 않고 안전하게 동작하기 위함입니다.
      * ========================================================================= */
-    const STORAGE_KEY = "moafin:v1";
+    /* ---- M2 테스트판: 모드 판별과 테스트 세션 (상태 생성보다 먼저 정의해야 함) ----
+     *  ?demo=1            → 데모 모드 (예시 장부 3종, 병준 점검용)
+     *  없음 / ?ref=코드    → 실사용 모드 (테스터가 직접 입력, 빈 장부로 시작)
+     *  금액 원본은 이 브라우저 안에서만 쓰고 설문 링크에는 넣지 않는다. */
+    const TEST_PARAMS = (() => {
+      try { return new URLSearchParams(window.location.search); } catch (e) { return new URLSearchParams(""); }
+    })();
+    const IS_DEMO = TEST_PARAMS.get("demo") === "1";
+    const REF_CODE = (() => {
+      const r = (TEST_PARAMS.get("ref") || "").trim().replace(/[^A-Za-z0-9_-]/g, "").slice(0, 30);
+      return r || "none";
+    })();
+    const STORAGE_KEY = IS_DEMO ? "moafin:v1-demo" : "moafin:v1-live";
+    const TS_KEY = IS_DEMO ? "moafin:ts-demo" : "moafin:ts-live";
+
+    // 테스트 세션: 동의 여부·시작 시각·가짜 문 클릭·마지막으로 연 탭 (금액은 담지 않는다)
+    const testSession = (() => {
+      const base = { consented: IS_DEMO, startMs: Date.now(), clicks: { 1: 0, 2: 0, 3: 0 }, reached: "", demoKey: "2" };
+      try {
+        const raw = window.localStorage.getItem(TS_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p && typeof p === "object") {
+            base.consented = IS_DEMO ? true : Boolean(p.consented);
+            base.startMs = (!IS_DEMO && Number(p.startMs)) ? Number(p.startMs) : base.startMs;
+            base.clicks = { 1: p.clicks?.[1] ? 1 : 0, 2: p.clicks?.[2] ? 1 : 0, 3: p.clicks?.[3] ? 1 : 0 };
+            base.reached = typeof p.reached === "string" ? p.reached : "";
+            base.demoKey = ["1", "2", "3"].includes(p.demoKey) ? p.demoKey : "2";
+          }
+        }
+      } catch (e) { /* 저장소 차단 시 메모리로만 동작 */ }
+      return base;
+    })();
+    function 테스트세션저장() {
+      try { window.localStorage.setItem(TS_KEY, JSON.stringify(testSession)); } catch (e) { /* 무시 */ }
+    }
+
+    // 데모 장부 3종: ① 근로만 ② 3.3% 포함 ③ 복수 고용주 (CONFIG.SEED_SPECS 재사용, 2025년)
+    const DEMO_SCENARIOS = {
+      "1": { label: "① 근로만", desc: "카페 A 근로소득(4대보험)만 있는 장부", specs: [{ employer: "카페 A", months: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }] },
+      "2": { label: "② 3.3% 포함", desc: "카페 A 근로 + 과외 3.3% (같은 달에 겹치지 않음)", specs: [{ employer: "카페 A", months: [3, 4, 5, 6, 7, 8] }, { employer: "과외", months: [9, 11] }] },
+      "3": { label: "③ 복수 고용주", desc: "카페 A·과외·행사 스태프 3곳 (같은 달에 여러 곳)", specs: [{ employer: "카페 A", months: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }, { employer: "과외", months: [5, 7, 9, 11] }, { employer: "행사 스태프", months: [1, 2, 8] }] }
+    };
+    function 데모명세서생성(key) {
+      const scn = DEMO_SCENARIOS[key] || DEMO_SCENARIOS["2"];
+      const list = [];
+      let seq = 1;
+      scn.specs.forEach(s => {
+        const base = CONFIG.SEED_SPECS.find(x => x.employer === s.employer);
+        if (!base) return;
+        s.months.forEach(m => {
+          list.push({
+            id: `demo${key}-${seq++}`,
+            isSeed: true,
+            employer: base.employer,
+            year: 2025,
+            month: m,
+            gross: base.gross,
+            deductionTotal: base.deductionTotal,
+            incomeType: base.incomeType,
+            userSelectedType: base.incomeType,
+            deductionItems: base.deductionItems.map(d => ({ ...d }))
+          });
+        });
+      });
+      return list;
+    }
 
     // 시드 명세서 배열 생성 함수 (2-10 규칙을 바탕으로 코드가 계산)
     function 시드명세서생성() {
@@ -1815,7 +1888,8 @@
     }
 
     function 기본상태생성() {
-      const seedPayslips = 시드명세서생성();
+      // 데모: 선택한 예시 장부로 시작 / 실사용: 시드 없이 빈 장부로 시작
+      const seedPayslips = IS_DEMO ? 데모명세서생성(testSession.demoKey) : [];
       return {
         version: 1,
         mvpMode: false,
@@ -1826,8 +1900,8 @@
           mayFiled: false,
           signalSimulationMode: "auto"
         },
-        firstRunSeen: false,
-        seedLoaded: true
+        firstRunSeen: !IS_DEMO,
+        seedLoaded: IS_DEMO
       };
     }
 
@@ -1853,15 +1927,15 @@
         }
         return {
           version: 1,
-          mvpMode: Boolean(parsed.mvpMode),
+          mvpMode: IS_DEMO && Boolean(parsed.mvpMode),
           payslips: parsed.payslips,
           settings: {
             notificationEnabled: Boolean(parsed.settings?.notificationEnabled),
             financialTransferEnabled: Boolean(parsed.settings?.financialTransferEnabled),
             mayFiled: Boolean(parsed.settings?.mayFiled),
-            signalSimulationMode: parsed.settings?.signalSimulationMode || "auto"
+            signalSimulationMode: IS_DEMO ? (parsed.settings?.signalSimulationMode || "auto") : "auto"
           },
-          firstRunSeen: Boolean(parsed.firstRunSeen),
+          firstRunSeen: IS_DEMO ? Boolean(parsed.firstRunSeen) : true,
           seedLoaded: Boolean(parsed.seedLoaded)
         };
       } catch (e) {
@@ -1924,10 +1998,15 @@
      * ========================================================================= */
 
     function 현재탭가져오기() {
-      const hash = (window.location.hash || "#home").replace("#", "");
-      const validTabs = ["home", "read", "verify", "accumulate", "report", "settings"];
-      return validTabs.includes(hash) ? hash : "home";
+      const hash = (window.location.hash || "#read").replace("#", "");
+      // 홈 탭은 '다음 단계' 탭으로 대체. 설정 탭은 데모 모드에서만 연다.
+      const validTabs = IS_DEMO
+        ? ["read", "verify", "accumulate", "report", "next", "settings"]
+        : ["read", "verify", "accumulate", "report", "next"];
+      return validTabs.includes(hash) ? hash : "read";
     }
+
+    const TAB_LABELS = { read: "판독", verify: "검증", accumulate: "누적", report: "소득 리포트", next: "다음 단계", settings: "설정" };
 
     function 소득유형뱃지HTML(incomeType, customLabel = "") {
       if (incomeType === "pending") return `<span class="badge-rule">질문 답변 대기</span>`;
@@ -1939,8 +2018,16 @@
     function 상단헤더및누적바그리기(acc) {
       const oneLinerEl = document.getElementById("header-oneliner");
       if (oneLinerEl) {
-        oneLinerEl.textContent = CONFIG.APP.oneLiner;
+        oneLinerEl.textContent = "흩어진 알바·3.3% 소득을 한 장으로";
       }
+
+      // 실사용(live) 모드에서는 MVP 해설 토글·설정 진입을 숨긴다 (데모에서만 유지)
+      const mvpBtnHide = document.getElementById("btn-mvp-toggle");
+      if (mvpBtnHide) mvpBtnHide.hidden = !IS_DEMO;
+      const goSettingsHide = document.getElementById("btn-go-settings");
+      if (goSettingsHide) goSettingsHide.hidden = !IS_DEMO;
+      const tabSettingsHide = document.getElementById("tab-settings");
+      if (tabSettingsHide) tabSettingsHide.hidden = !IS_DEMO;
 
       const mvpBtn = document.getElementById("btn-mvp-toggle");
       if (mvpBtn) {
@@ -1959,7 +2046,7 @@
       if (barEl) {
         barEl.innerHTML = `
           <div class="global-year-bar-items">
-            <span class="global-year-item">📅 <strong>2025년 누적 장부</strong></span>
+            <span class="global-year-item">📅 <strong>${원장연도()}년 누적 장부</strong></span>
             <span class="global-year-item">🏢 등록 고용주 <strong>${acc.employerCount}곳</strong></span>
             <span class="global-year-item">🗓️ 등록 개월 수 <strong>${acc.activeMonthCount}개월</strong> (총 ${acc.classifiedList.length}건)</span>
             <span class="global-year-item">💰 올해 누적 지급액 <strong>${금액포맷(acc.totalGross)}</strong></span>
@@ -2028,6 +2115,15 @@
     function 시드배너그리기() {
       const container = document.getElementById("seed-banner-container");
       if (!container) return;
+      // 테스트판: 실사용 모드는 배너 없음, 데모 모드는 예시 장부 3종 선택 바
+      if (!IS_DEMO) {
+        container.innerHTML = "";
+        return;
+      }
+      container.innerHTML = 데모바HTML();
+      return;
+
+      /* 아래 원본 시드 배너는 테스트판에서 사용하지 않음 (원본 보존용) */
       const hasSeed = appState.payslips.some(p => p.isSeed);
       if (!hasSeed) {
         container.innerHTML = "";
@@ -2179,6 +2275,7 @@
 
     // 탭2 🔍 판독 화면 렌더링
     function 판독화면그리기() {
+      if (!IS_DEMO) return 라이브판독화면그리기();
       const p = currentInspectedPayslip;
 
       const sampleCardsHTML = CONFIG.SAMPLE_PAYSLIPS.map(sample => {
@@ -2377,8 +2474,30 @@
 
     // 탭3 ✅ 검증 화면 렌더링
     function 검증화면그리기() {
+      // 실사용 모드: 입력한 명세서가 없으면 안내만, 있으면 선택한 입력 건을 검증한다
+      if (!IS_DEMO && appState.payslips.length === 0) {
+        return `
+          <div class="card">
+            <h2>✅ 검증</h2>
+            <p style="margin:8px 0 12px;">아직 입력한 명세서가 없어요. 판독 탭에서 명세서를 한 건 이상 입력하면 여기서 어떤 금액이 왜 빠졌는지 볼 수 있어요.</p>
+            <button type="button" class="btn btn-primary" data-action="go-read-tab">판독 탭으로 가기 →</button>
+          </div>
+        `;
+      }
       const verification = verifyDeductions(currentInspectedPayslip, CONFIG.RULES);
       const p = verification.payslip;
+      const isLivePending = !IS_DEMO && p.incomeType === "pending";
+      const verifyPickerHTML = IS_DEMO
+        ? `
+              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="A">카페 알바 명세서 보기</button>
+              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="B">과외 명세서 보기</button>
+              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="C">행사 알바 명세서 보기</button>`
+        : 정렬된명세서().map(e => `
+              <button type="button" class="btn t-btn ${e.id === currentLiveEntryId ? "btn-primary" : ""}" data-t="pick-entry" data-id="${텍스트이스케이프(e.id)}">${텍스트이스케이프(연월문자열(e))} ${텍스트이스케이프(e.employer || "")}</button>`).join("");
+      const livePendingHintHTML = isLivePending ? `
+        <div class="t-notice" style="margin-bottom:12px;">
+          ❓ 이 건은 소득 유형을 아직 알 수 없어요. 명세서에 3.3%나 원천징수 표시가 있는지 확인해 보세요. 확인한 뒤 판독 탭에서 유형을 골라 다시 입력하면 분류돼요.
+        </div>` : "";
 
       const zeroDeductionRuleBadge = p.incomeType === "wage"
         ? "연말정산 대상"
@@ -2442,19 +2561,18 @@
               <p>명세서에서 빠진 세금과 보험료가 각각 무슨 돈인지, 나중에 돌려받을 수 있는지 한 줄씩 쉽게 설명해 드립니다.</p>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="A">카페 알바 명세서 보기</button>
-              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="B">과외 명세서 보기</button>
-              <button type="button" class="btn" data-action="select-sample-and-stay" data-sample="C">행사 알바 명세서 보기</button>
+              ${verifyPickerHTML}
             </div>
           </div>
 
           <div style="padding:12px 16px; background:var(--accent-bg); border-radius:8px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div>
-              <strong>현재 확인 중인 명세서:</strong> ${텍스트이스케이프(p.employer)} (${p.month}월) · ${소득유형뱃지HTML(p.incomeType, p.isZeroDeductionWage ? "근로소득(공제 없음)" : "")}
+              <strong>현재 확인 중인 명세서:</strong> ${텍스트이스케이프(p.employer)} (${p.year ? p.year + "년 " : ""}${p.month}월) · ${소득유형뱃지HTML(p.incomeType, p.isZeroDeductionWage ? "근로소득(공제 없음)" : "")}
             </div>
           </div>
 
-          ${itemsHTML}
+          ${livePendingHintHTML}
+          ${isLivePending ? "" : itemsHTML}
 
           <!-- 맨 끝 한 줄 요약 -->
           <div style="margin-top:16px; padding:16px; background:var(--mvp-bg); border:2px solid var(--mvp-border); border-radius:10px;">
@@ -2599,7 +2717,37 @@
         `
         : "";
 
+      // 테스트판: 소득 유형별 정리를 주 화면으로 (근로·3.3%·일용 각각 건수·지급액·공제)
+      const typeSummary = { wage: { n: 0, g: 0, w: 0 }, biz: { n: 0, g: 0, w: 0 }, daily: { n: 0, g: 0, w: 0 } };
+      acc.classifiedList.forEach(it => {
+        const t = typeSummary[it.incomeType];
+        if (t) { t.n += 1; t.g += it.gross; t.w += it.deductionTotal; }
+      });
+      const typeCardsHTML = [["wage", "근로소득 (4대보험)"], ["biz", "3.3% 소득"], ["daily", "일용근로"]].map(([k, label]) => `
+          <div class="card" style="margin-bottom:0;">
+            <div style="margin-bottom:6px;">${소득유형뱃지HTML(k, label)}</div>
+            <div class="amount-text" style="margin-top:4px;">${금액포맷(typeSummary[k].g)}</div>
+            <p style="font-size:15px; color:var(--sub); margin-top:4px; font-weight:600;">${typeSummary[k].n}건 · 떼인 금액 ${금액포맷(typeSummary[k].w)}</p>
+          </div>`).join("");
+      const ledgerYearsList = 원장연도목록();
+      const yearPickerHTML = ledgerYearsList.length > 1 ? `
+        <div class="card" style="margin-bottom:16px;">
+          <div style="font-weight:700; margin-bottom:6px;">📅 보고 싶은 연도</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${ledgerYearsList.map(y => `<button type="button" class="btn ${y === 원장연도() ? "btn-primary" : ""}" data-t="set-year" data-year="${y}">${y}년</button>`).join("")}
+          </div>
+          <p style="font-size:14px; color:var(--sub); margin-top:6px; font-weight:600;">연도가 다른 명세서는 연도별로 따로 모아요. 지금은 ${원장연도()}년만 아래 표·리포트에 들어가요.</p>
+        </div>` : "";
+
       return `
+        ${yearPickerHTML}
+        <!-- 소득 유형별 정리 (주 화면) -->
+        <div class="card" style="margin-bottom:16px;">
+          <h2>📊 소득 유형별 정리 (${원장연도()}년)</h2>
+          <p style="margin-bottom:12px;">입력한 명세서를 근로·3.3%·일용으로 나눠 모았어요.</p>
+          <div class="grid-3">${typeCardsHTML}</div>
+        </div>
+
         <!-- 합계 카드 3개 -->
         <div class="grid-3" style="margin-bottom:16px;">
           <div class="card" style="margin-bottom:0;">
@@ -2632,7 +2780,7 @@
         <!-- 고용주 × 12개월 매트릭스 표 -->
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-            <h2>🗓️ 고용주 × 12개월 소득 매트릭스 표 (2025년)</h2>
+            <h2>🗓️ 고용주 × 12개월 소득 매트릭스 표 (${원장연도()}년)</h2>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               ${소득유형뱃지HTML("wage")}
               ${소득유형뱃지HTML("biz")}
@@ -2655,6 +2803,10 @@
           </div>
         </div>
 
+        <!-- 환급·신고 추정은 접어 두고 '추정치' 라벨을 단다 (테스트판) -->
+        <details class="card" id="refund-estimate-details">
+        <summary style="cursor:pointer; font-weight:800; font-size:18px;">📌 환급·신고 추정 보기 <span class="estimate-notice">추정치입니다</span> (눌러서 펼치기)</summary>
+        <p style="margin:8px 0 12px; font-size:14px; color:var(--sub); font-weight:600;">입력한 내용을 바탕으로 한 추정치이며 세무 조언이 아닙니다.</p>
         <!-- 신고 필요 여부 신호등 + 예상 환급 범위 + 확인에 드는 예상 시간과 1분당 기대 금액 -->
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
@@ -2729,10 +2881,11 @@
             <div class="timeline-step past">
               <div style="font-weight:800;">8월 ~ 9월경 (경과 시점)</div>
               <div style="font-size:17px; font-weight:700; margin-top:4px;">③ 환급금 및 근로장려금 지급</div>
-              <p style="font-size:14px; margin-top:4px;">심사 완료 후 신고 계좌로 지급 (2025년 귀속 소득은 내년 5월 정기 신청 대상입니다)</p>
+              <p style="font-size:14px; margin-top:4px;">심사 완료 후 신고 계좌로 지급 (${원장연도()}년 귀속 소득은 ${원장연도() + 1}년 5월 정기 신청 대상입니다)</p>
             </div>
           </div>
         </div>
+        </details>
       `;
     }
     /* =========================================================================
@@ -2742,6 +2895,7 @@
     // 탭5 📄 소득 리포트 화면 렌더링 (수익모델의 실물, A4 한 장 형태)
     function 리포트화면그리기(acc) {
       const report = buildReport(acc, CONFIG.RULES);
+      report.periodText = `${원장연도()}년 1월 ~ 12월 (12개월 누적)`;
 
       const rowsHTML = report.monthlySummary.map(row => `
         <tr>
@@ -2788,18 +2942,18 @@
               <p>1년 동안 쌓인 알바 소득 증명과 5월 홈택스 신고 입력 요약본을 한 장으로 정리했습니다.</p>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
-              <button type="button" class="btn" data-action="toggle-transfer">
+              ${IS_DEMO ? `<button type="button" class="btn" data-action="toggle-transfer">
                 🏦 금융사에 내 소득 리포트 보내기: <strong>${appState.settings.financialTransferEnabled ? "켜짐 (데모)" : "꺼짐 (기본값)"}</strong>
-              </button>
+              </button>` : ""}
               <button type="button" class="btn btn-primary" data-action="print-report">
                 🖨️ 리포트 인쇄하거나 PDF로 저장하기
               </button>
             </div>
           </div>
-          <p style="margin-top:8px; font-weight:700; color:var(--sub);">
+          ${IS_DEMO ? `<p style="margin-top:8px; font-weight:700; color:var(--sub);">
             ℹ️ 금융사 전송 상태: <strong>${appState.settings.financialTransferEnabled ? "동의됨 (데모에서는 전송되지 않습니다 · 언제든 철회·삭제 가능)" : "꺼짐 (기본값 · 건별 본인 동의 전까지 절대 전송하지 않음)"}</strong>
           </p>
-          ${consentBoxHTML}
+          ${consentBoxHTML}` : ""}
         </div>
 
         <!-- A4 한 장 리포트 본문 -->
@@ -2891,6 +3045,12 @@
             </tbody>
           </table>
         </article>
+
+        <!-- 버튼 ① 금융 연계 가짜 문 (테스트판, 인쇄 시 숨김) -->
+        <div class="card no-print">
+          <h3>🏦 이 리포트를 어디에 쓰고 싶으세요?</h3>
+          ${가짜문HTML(1, "이 리포트로 대출·카드 심사 받아보기")}
+        </div>
       `;
     }
 
@@ -3175,8 +3335,31 @@
     }
 
     function 전체화면그리기() {
+      // 실사용 모드: 동의 전에는 동의 화면만 보여 준다
+      if (!IS_DEMO && !testSession.consented) {
+        동의화면그리기();
+        return;
+      }
+      const navEl = document.querySelector(".nav-tabs");
+      if (navEl) navEl.hidden = false;
+
       const currentTab = 현재탭가져오기();
-      const acc = accumulate(appState.payslips, appState.settings, CONFIG.RULES, CONFIG.TIME_COSTS);
+      // 연도가 여럿이면 선택한 연도(기본: 가장 최근 연도)만 12개월 장부에 넣는다
+      const acc = accumulate(원장명세서(), appState.settings, CONFIG.RULES, CONFIG.TIME_COSTS);
+
+      // 마지막으로 연 탭 기록 (설문 '도달 단계'용)
+      testSession.reached = TAB_LABELS[currentTab] || "";
+      테스트세션저장();
+
+      // 실사용 모드의 검증 탭은 선택한 입력 건을 보여 준다
+      if (!IS_DEMO) {
+        const sorted = 정렬된명세서();
+        const pick = sorted.find(e => e.id === currentLiveEntryId) || sorted[sorted.length - 1];
+        if (pick) {
+          currentLiveEntryId = pick.id;
+          currentInspectedPayslip = readPayslip(pick, CONFIG.RULES);
+        }
+      }
 
       상단헤더및누적바그리기(acc);
       첫실행안내그리기();
@@ -3186,8 +3369,8 @@
       const mainEl = document.getElementById("main-view");
       if (!mainEl) return;
 
-      if (currentTab === "home") {
-        mainEl.innerHTML = 홈화면그리기(acc);
+      if (currentTab === "next") {
+        mainEl.innerHTML = 다음단계화면그리기(acc);
       } else if (currentTab === "read") {
         mainEl.innerHTML = 판독화면그리기();
       } else if (currentTab === "verify") {
@@ -3198,6 +3381,15 @@
         mainEl.innerHTML = 리포트화면그리기(acc);
       } else if (currentTab === "settings") {
         mainEl.innerHTML = 설정화면그리기(acc);
+      }
+
+      // 모든 탭 하단: 여기까지 하고 설문 가기 (다음 단계 탭은 자체 완료 버튼이 있음)
+      if (currentTab !== "next") {
+        mainEl.insertAdjacentHTML("beforeend", 설문바닥HTML());
+      }
+      // 실사용 모드에서는 '소득 변화별 판정 체험' 셀렉트를 숨긴다 (장부 자동 판정만)
+      if (!IS_DEMO) {
+        document.getElementById("select-signal-sim")?.parentElement?.remove();
       }
     }
 
@@ -3471,6 +3663,451 @@
         }
       });
     }
+
+    /* =========================================================================
+     * 7. M2 테스트판 레이어 (새 수익모델 3개 가짜 문 검증 + 구글폼 결과 전송)
+     *    - 규칙 기반이며 외부 API 호출·키가 없다.
+     *    - 금액 원본은 브라우저 안에서만 쓰고, 설문 링크에는 구간·건수·신호만 넣는다.
+     * ========================================================================= */
+    const SURVEY_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSdWRaYJh4nTySNiW_R6mS-GnjttOpwEQOQZORCfF-8J2zTR2w/viewform?usp=pp_url";
+    const SURVEY_ENTRY = {
+      ref: "entry.1309513228",
+      mode: "entry.1020509391",
+      count: "entry.663814037",
+      types: "entry.1733711699",
+      bracket: "entry.1809972201",
+      signal: "entry.1019673802",
+      reached: "entry.9298048",
+      click1: "entry.2112404984",
+      click2: "entry.1995554530",
+      click3: "entry.113069737",
+      seconds: "entry.53830445"
+    };
+    const FAKE_DOOR_MESSAGE = "지금은 테스트 기간이라 실제 연결은 되지 않아요. 관심 표시로 기록했어요. 감사합니다!";
+
+    let selectedLedgerYear = null;      // null이면 가장 최근 연도
+    let currentLiveEntryId = "";        // 실사용 모드에서 검증 탭이 보는 입력 건
+    let liveNotice = "";                // 판독 탭 안내 문구 (판독 결과·입력 오류)
+
+    // ---- 연도·월 처리 ----
+    function 명세서연도(p) { return Number(p.year) || 2025; }
+    function 연월문자열(p) { return `${명세서연도(p)}-${String(Number(p.month) || 1).padStart(2, "0")}`; }
+    function 정렬된명세서() {
+      return [...appState.payslips].sort((a, b) => 연월문자열(a).localeCompare(연월문자열(b)));
+    }
+    function 원장연도목록() {
+      return Array.from(new Set(appState.payslips.map(명세서연도))).sort((a, b) => a - b);
+    }
+    function 원장연도() {
+      const years = 원장연도목록();
+      if (selectedLedgerYear && years.includes(selectedLedgerYear)) return selectedLedgerYear;
+      return years.length ? Math.max(...years) : 2025;
+    }
+    function 원장명세서() {
+      const y = 원장연도();
+      return appState.payslips.filter(p => 명세서연도(p) === y);
+    }
+
+    // ---- 신호 규칙 (규칙 기반 개인화) ----
+    // A: 3.3% 소득 1건 이상 / B: 같은 달(연·월 기준)에 일한 곳 2곳 이상 / 없음: 그 외
+    function 신호계산(payslips) {
+      const classified = payslips.map(p => readPayslip(p, CONFIG.RULES));
+      const valid = classified.filter(p => p.incomeType !== "pending");
+      const A = valid.some(p => p.incomeType === "biz");
+      const byMonth = new Map();
+      valid.forEach(p => {
+        const key = 연월문자열(p);
+        if (!byMonth.has(key)) byMonth.set(key, new Set());
+        byMonth.get(key).add((p.employer || "").trim());
+      });
+      const B = Array.from(byMonth.values()).some(set => set.size >= 2);
+      return {
+        A, B,
+        count: valid.length,
+        pendingCount: classified.length - valid.length,
+        wageOnly: valid.length > 0 && valid.every(p => p.incomeType === "wage"),
+        text: A && B ? "A,B" : (A ? "A" : (B ? "B" : "없음"))
+      };
+    }
+
+    // ---- 설문 링크에 들어갈 값 (금액 원본 없음) ----
+    function 소득구간(payslips) {
+      if (payslips.length === 0) return "";
+      const total = payslips.reduce((s, p) => s + (Number(p.gross) || 0), 0);
+      const months = new Set(payslips.map(연월문자열)).size;
+      if (months === 0) return "";
+      const avg = total / months;
+      if (avg < 500000) return "50만 미만";
+      if (avg < 1000000) return "50~100만";
+      if (avg < 1500000) return "100~150만";
+      return "150만 이상";
+    }
+    function 소득유형조합(payslips) {
+      const set = new Set();
+      payslips.forEach(p => {
+        const t = readPayslip(p, CONFIG.RULES).incomeType;
+        set.add(t === "wage" ? "근로" : (t === "biz" ? "3.3%" : (t === "daily" ? "일용" : "잘모름")));
+      });
+      return ["근로", "3.3%", "일용", "잘모름"].filter(x => set.has(x)).join(",");
+    }
+    function 설문링크만들기() {
+      const list = appState.payslips;
+      const sig = 신호계산(list);
+      const seconds = Math.max(0, Math.round((Date.now() - testSession.startMs) / 1000));
+      const values = {
+        ref: REF_CODE,
+        mode: IS_DEMO ? "demo" : "live",
+        count: String(list.length),
+        types: 소득유형조합(list),
+        bracket: 소득구간(list),
+        signal: sig.text,
+        reached: testSession.reached || TAB_LABELS[현재탭가져오기()] || "",
+        click1: String(testSession.clicks[1] ? 1 : 0),
+        click2: String(testSession.clicks[2] ? 1 : 0),
+        click3: String(testSession.clicks[3] ? 1 : 0),
+        seconds: String(seconds)
+      };
+      let url = SURVEY_BASE;
+      Object.keys(SURVEY_ENTRY).forEach(k => {
+        if (values[k] === "") return; // 비어 있으면 파라미터 자체를 넣지 않음 (소득 구간 0건 처리 포함)
+        url += `&${SURVEY_ENTRY[k]}=${encodeURIComponent(values[k])}`;
+      });
+      return url;
+    }
+    function 설문열기() {
+      testSession.reached = TAB_LABELS[현재탭가져오기()] || testSession.reached;
+      테스트세션저장();
+      const a = document.createElement("a");
+      a.href = 설문링크만들기();
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    // ---- 화면 조각 ----
+    function 가짜문HTML(n, label) {
+      const shown = testSession.clicks[n] ? "" : "hidden";
+      return `
+        <div>
+          <button type="button" class="btn btn-primary t-btn" data-t="fake-door" data-n="${n}">${텍스트이스케이프(label)}</button>
+          <div class="t-fakedoor-msg" id="fd-msg-${n}" role="status" ${shown}>${텍스트이스케이프(FAKE_DOOR_MESSAGE)}</div>
+        </div>
+      `;
+    }
+
+    function 설문바닥HTML() {
+      return `
+        <div class="card no-print t-footer-card">
+          <p style="margin-bottom:10px; font-weight:600;">
+            여기까지만 해도 괜찮아요. 누르면 어떤 화면까지 봤는지, 어떤 버튼을 눌렀는지, 월 소득이 대략 어느 구간인지만 설문지로 넘어가요. (금액 원본은 보내지 않아요)
+          </p>
+          <button type="button" class="btn t-btn" data-t="survey">여기까지 하고 설문 가기</button>
+        </div>
+      `;
+    }
+
+    function 데모바HTML() {
+      const btns = Object.keys(DEMO_SCENARIOS).map(k => `
+        <button type="button" class="btn t-btn ${testSession.demoKey === k ? "btn-primary" : ""}" data-t="demo-scn" data-k="${k}">${텍스트이스케이프(DEMO_SCENARIOS[k].label)}</button>`).join("");
+      return `
+        <div class="seed-banner" role="region" aria-label="데모 모드 안내">
+          <div>
+            <strong>🧪 데모 모드 (?demo=1)</strong> — 병준 점검용입니다. 설문으로 보내면 mode=demo로 기록돼 집계에서 제외할 수 있어요.
+            <span>예시 장부 선택: ${텍스트이스케이프(DEMO_SCENARIOS[testSession.demoKey].desc)}</span>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">${btns}</div>
+        </div>
+      `;
+    }
+
+    function 동의화면그리기() {
+      const navEl = document.querySelector(".nav-tabs");
+      if (navEl) navEl.hidden = true;
+      ["first-run-container", "mvp-banner-container", "seed-banner-container", "global-year-bar"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = "";
+      });
+      const oneLinerEl = document.getElementById("header-oneliner");
+      if (oneLinerEl) oneLinerEl.textContent = "흩어진 알바·3.3% 소득을 한 장으로";
+      const mvpBtn = document.getElementById("btn-mvp-toggle");
+      if (mvpBtn) mvpBtn.hidden = true;
+      const goSet = document.getElementById("btn-go-settings");
+      if (goSet) goSet.hidden = true;
+      const mainEl = document.getElementById("main-view");
+      if (!mainEl) return;
+      mainEl.innerHTML = `
+        <div class="card" role="region" aria-label="테스트 안내와 동의">
+          <h2>모아핀 테스트 안내</h2>
+          <p style="margin:8px 0 12px; font-weight:600;">모아핀은 세종대 핀테크개론 수업에서 만든 시제품입니다.</p>
+          <ul style="padding-left:20px; margin-bottom:14px; font-weight:600;">
+            <li style="margin-bottom:6px;">입력한 금액은 이 브라우저 안에서만 쓰이고 서버로 전송되지 않습니다. (새로고침 후에도 이어 쓰도록 이 기기의 브라우저에만 저장되며, 판독 탭의 '기록 지우기'로 지울 수 있어요.)</li>
+            <li style="margin-bottom:6px;">테스트가 끝나면 어떤 화면까지 봤는지, 어떤 버튼을 눌렀는지, 월 소득이 대략 어느 구간인지만 설문지로 넘어갑니다.</li>
+            <li style="margin-bottom:6px;">세금 계산은 추정치이며 세무 조언이 아닙니다.</li>
+            <li style="margin-bottom:6px;">언제든 그만두셔도 됩니다.</li>
+          </ul>
+          <button type="button" class="btn btn-primary t-btn" data-t="consent">동의하고 시작하기</button>
+        </div>
+      `;
+    }
+
+    function 라이브판독화면그리기() {
+      const sorted = 정렬된명세서();
+      const rowsHTML = sorted.length === 0
+        ? `<p style="font-weight:600; color:var(--sub);">아직 입력한 명세서가 없어요. 위 칸을 채우고 '명세서 추가'를 눌러 주세요.</p>`
+        : sorted.map(e => {
+            const r = readPayslip(e, CONFIG.RULES);
+            const typeBadge = 소득유형뱃지HTML(r.incomeType, r.isZeroDeductionWage ? "근로소득(공제 없음)" : "");
+            const pendingHint = r.incomeType === "pending"
+              ? `<div style="flex-basis:100%; font-size:14px; font-weight:700; color:var(--warn);">❓ 명세서에 3.3%나 원천징수 표시가 있는지 확인해 보세요.</div>`
+              : "";
+            const estHint = e.estimatedDeduction
+              ? `<div style="flex-basis:100%; font-size:14px; color:var(--sub); font-weight:600;">떼인 세금을 비워 3.3%로 계산했어요 (추정)</div>`
+              : "";
+            return `
+              <div class="t-row">
+                <div style="min-width:0; overflow-wrap:anywhere;">
+                  <strong>${텍스트이스케이프(연월문자열(e))}</strong> · ${텍스트이스케이프(e.employer || "")} · ${typeBadge}
+                  <div style="font-weight:700;">지급 ${금액포맷(e.gross)} · 떼인 세금 ${금액포맷(e.deductionTotal)}</div>
+                </div>
+                <button type="button" class="btn t-btn" data-t="delete-entry" data-id="${텍스트이스케이프(e.id)}" aria-label="이 명세서 삭제">삭제</button>
+                ${pendingHint}${estHint}
+              </div>`;
+          }).join("");
+      const noticeHTML = liveNotice ? `<div class="t-notice" role="status">${텍스트이스케이프(liveNotice)}</div>` : "";
+
+      return `
+        <div class="card">
+          <h2>✍️ 이번 달 명세서 입력하기</h2>
+          <p style="margin-bottom:12px; font-weight:600;">
+            정확하지 않아도 대략 입력해도 괜찮아요. 실명·주민번호·계좌번호는 입력하지 마세요. 한 건씩 여러 번 추가할 수 있어요.
+          </p>
+          <form id="live-entry-form" class="form-grid" novalidate>
+            <div class="form-group">
+              <label for="live-ym">지급 월 (예: 2026-10)</label>
+              <input id="live-ym" class="form-control" type="month" min="2015-01" max="2035-12" placeholder="YYYY-MM" pattern="[0-9]{4}-[0-9]{2}" required>
+            </div>
+            <div class="form-group">
+              <label for="live-employer">일한 곳 (선택 · 별칭, 실명 불필요)</label>
+              <input id="live-employer" class="form-control" type="text" maxlength="30" placeholder="예: 카페 A">
+            </div>
+            <div class="form-group">
+              <label for="live-type">소득 유형</label>
+              <select id="live-type" class="form-control" required>
+                <option value="">선택해 주세요</option>
+                <option value="wage">근로 (4대보험)</option>
+                <option value="biz">3.3%</option>
+                <option value="daily">일용</option>
+                <option value="unknown">잘 모름</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="live-gross">지급액 (세전, 원)</label>
+              <input id="live-gross" class="form-control" type="number" inputmode="numeric" min="1" step="1" placeholder="예: 600000" required>
+            </div>
+            <div class="form-group">
+              <label for="live-deduction">떼인 세금 (원, 모르면 비워 두기)</label>
+              <input id="live-deduction" class="form-control" type="number" inputmode="numeric" min="0" step="1" placeholder="예: 19800">
+            </div>
+            <div style="grid-column: 1 / -1; display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;">
+              <button type="submit" class="btn btn-primary t-btn">＋ 명세서 추가</button>
+            </div>
+          </form>
+          <p style="margin-top:8px; font-size:14px; color:var(--sub); font-weight:600;">
+            '잘 모름'을 고르면 명세서에 3.3%나 원천징수 표시가 있는지 확인해 보라는 안내를 드려요.
+          </p>
+          ${noticeHTML}
+        </div>
+
+        <div class="card">
+          <h2>📋 입력한 명세서 (${sorted.length}건)</h2>
+          <div style="margin-top:10px;">${rowsHTML}</div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <button type="button" class="btn t-btn" data-action="go-verify-tab">검증 보기 →</button>
+            <button type="button" class="btn t-btn" data-action="go-accumulate-tab">누적 보기 →</button>
+            <button type="button" class="btn t-btn" data-t="clear-all">기록 지우기</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function 다음단계화면그리기(acc) {
+      const sig = 신호계산(appState.payslips);
+      let cardsHTML = "";
+      if (sig.count === 0) {
+        cardsHTML = `
+          <div class="card">
+            <p style="font-weight:700; margin-bottom:10px;">${sig.pendingCount > 0
+              ? "입력한 명세서 중 소득 유형을 아직 알 수 없는 건이 있어요. 명세서에 3.3%나 원천징수 표시가 있는지 확인해 보세요."
+              : "아직 입력한 명세서가 없어요. 판독 탭에서 명세서를 입력하면, 입력한 내용을 바탕으로 다음 단계를 안내해요."}</p>
+            <button type="button" class="btn btn-primary t-btn" data-action="go-read-tab">판독 탭으로 가기 →</button>
+          </div>`;
+      } else {
+        if (sig.A) {
+          cardsHTML += `
+            <div class="card">
+              <div style="margin-bottom:6px;"><span class="badge-rule">신호 A</span></div>
+              <p style="font-size:18px; font-weight:800; margin-bottom:12px;">3.3% 소득이 있어요. 5월 종합소득세 신고 대상일 수 있어요.</p>
+              ${가짜문HTML(2, "세무사 연결 신청")}
+            </div>`;
+        }
+        if (sig.B) {
+          cardsHTML += `
+            <div class="card">
+              <div style="margin-bottom:6px;"><span class="badge-rule">신호 B</span></div>
+              <p style="font-size:18px; font-weight:800; margin-bottom:12px;">일하는 곳이 여러 곳이면 소득 리포트로 한 번에 정리해 두면 좋아요.</p>
+              <button type="button" class="btn t-btn" data-action="go-report-tab-next">소득 리포트 보기 →</button>
+            </div>`;
+        }
+        if (!sig.A && !sig.B) {
+          cardsHTML += `
+            <div class="card">
+              <div style="margin-bottom:6px;"><span class="badge-rule">신호 없음</span></div>
+              <p style="font-size:18px; font-weight:800;">${sig.wageOnly
+                ? "근로소득은 회사에서 이미 신고돼요. 매달 쌓아 두면 1년 소득 리포트를 만들 수 있어요."
+                : "입력한 내용을 바탕으로 보면 지금 따로 알릴 신호는 없어요. 매달 쌓아 두면 1년 소득 리포트를 만들 수 있어요."}</p>
+            </div>`;
+        }
+      }
+      return `
+        <div class="card">
+          <h2>➡️ 다음 단계</h2>
+          <p style="font-weight:600;">입력한 내용을 바탕으로 한 안내예요. 세무 조언이 아니에요.</p>
+        </div>
+        ${cardsHTML}
+        <div class="card">
+          <h3>🏦 세제혜택 계좌</h3>
+          <div style="margin-top:10px;">${가짜문HTML(3, "세제혜택 계좌 알아보기")}</div>
+        </div>
+        <div class="card t-footer-card no-print">
+          <p style="margin-bottom:10px; font-weight:600;">
+            테스트는 여기까지예요. 누르면 어떤 화면까지 봤는지, 어떤 버튼을 눌렀는지, 월 소득이 대략 어느 구간인지만 설문지로 넘어가요. (금액 원본은 보내지 않아요)
+          </p>
+          <button type="button" class="btn btn-primary t-btn" data-t="survey">테스트 완료하고 설문 가기</button>
+        </div>
+      `;
+    }
+
+    // ---- 이벤트 (data-t 속성만 처리하므로 기존 data-action 핸들러와 겹치지 않음) ----
+    document.body.addEventListener("click", (e) => {
+      const target = e.target.closest("[data-t]");
+      if (!target) return;
+      const act = target.getAttribute("data-t");
+
+      if (act === "consent") {
+        testSession.consented = true;
+        testSession.startMs = Date.now();
+        테스트세션저장();
+        if (!window.location.hash) window.location.hash = "#read";
+        전체화면그리기();
+      } else if (act === "fake-door") {
+        const n = Number(target.getAttribute("data-n"));
+        if (n >= 1 && n <= 3) {
+          testSession.clicks[n] = 1;
+          테스트세션저장();
+          const msg = document.getElementById(`fd-msg-${n}`);
+          if (msg) msg.hidden = false; // 화면을 다시 그리지 않고 즉시 공개 문구를 띄운다
+        }
+      } else if (act === "survey") {
+        설문열기();
+      } else if (act === "demo-scn") {
+        const k = target.getAttribute("data-k");
+        if (DEMO_SCENARIOS[k]) {
+          testSession.demoKey = k;
+          테스트세션저장();
+          appState.payslips = 데모명세서생성(k);
+          appState.settings.signalSimulationMode = "auto";
+          selectedLedgerYear = null;
+          currentSelectedSampleKey = "A";
+          currentInspectedPayslip = readPayslip(CONFIG.SAMPLE_PAYSLIPS[0]);
+          상태저장(false);
+          전체화면그리기();
+        }
+      } else if (act === "delete-entry") {
+        const id = target.getAttribute("data-id");
+        appState.payslips = appState.payslips.filter(p => p.id !== id);
+        liveNotice = "";
+        상태저장(false);
+        전체화면그리기();
+      } else if (act === "clear-all") {
+        if (window.confirm("입력한 명세서를 모두 지울까요? 이 브라우저에 저장된 기록이 삭제돼요.")) {
+          appState.payslips = [];
+          liveNotice = "";
+          currentLiveEntryId = "";
+          selectedLedgerYear = null;
+          상태저장(false);
+          전체화면그리기();
+        }
+      } else if (act === "pick-entry") {
+        currentLiveEntryId = target.getAttribute("data-id") || "";
+        전체화면그리기();
+      } else if (act === "set-year") {
+        selectedLedgerYear = Number(target.getAttribute("data-year")) || null;
+        전체화면그리기();
+      }
+    });
+
+    // '다음 단계' 카드의 리포트 이동 (data-action이라 기존 핸들러에 없으므로 별도 처리)
+    document.body.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-action='go-report-tab-next']");
+      if (t) 탭이동("report");
+    });
+
+    // 실사용 입력 폼 제출
+    document.body.addEventListener("submit", (e) => {
+      if (!e.target || e.target.id !== "live-entry-form") return;
+      e.preventDefault();
+      const ym = (document.getElementById("live-ym")?.value || "").trim();
+      const employer = (document.getElementById("live-employer")?.value || "").trim().slice(0, 30) || "일한 곳 미입력";
+      const type = document.getElementById("live-type")?.value || "";
+      const grossRaw = document.getElementById("live-gross")?.value || "";
+      const dedRaw = (document.getElementById("live-deduction")?.value || "").trim();
+
+      const m = /^(\d{4})-(\d{2})$/.exec(ym);
+      const year = m ? Number(m[1]) : 0;
+      const month = m ? Number(m[2]) : 0;
+      const gross = Number(grossRaw);
+      const ded = dedRaw === "" ? null : Number(dedRaw);
+
+      let err = "";
+      if (!m || year < 2015 || year > 2035 || month < 1 || month > 12) err = "지급 월을 YYYY-MM 형식(예: 2026-10)으로 입력해 주세요.";
+      else if (!["wage", "biz", "daily", "unknown"].includes(type)) err = "소득 유형을 선택해 주세요.";
+      else if (!(gross > 0)) err = "지급액(세전)을 1원 이상으로 입력해 주세요.";
+      else if (ded !== null && (!(ded >= 0) || ded > gross)) err = "떼인 세금은 0원 이상, 지급액 이하로 입력해 주세요. 모르면 비워 두세요.";
+      if (err) {
+        liveNotice = err;
+        전체화면그리기();
+        return;
+      }
+
+      // 3.3%인데 세금을 비웠거나 0이면 지급액의 3.3%로 추정한다
+      const estimated = type === "biz" && (ded === null || ded === 0);
+      const deduction = estimated ? Math.round(gross * CONFIG.RULES.R1.rate) : (ded === null ? 0 : ded);
+      const r = readPayslip({ employer, month, gross, deductionTotal: deduction, userSelectedType: type, deductionItems: [] }, CONFIG.RULES);
+      const entry = {
+        id: `live-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        isSeed: false,
+        employer,
+        year,
+        month,
+        gross,
+        deductionTotal: deduction,
+        userSelectedType: type,
+        isZeroDeductionWage: Boolean(r.isZeroDeductionWage),
+        zeroDeductionPayUnit: r.zeroDeductionPayUnit || "",
+        deductionItems: Array.isArray(r.deductionItems) ? r.deductionItems.map(d => ({ ...d })) : [],
+        estimatedDeduction: estimated
+      };
+      if (r.incomeType !== "pending") entry.incomeType = r.incomeType;
+      appState.payslips.push(entry);
+      currentLiveEntryId = entry.id;
+      liveNotice = r.incomeType === "pending"
+        ? `${ym} ${employer}: 소득 유형을 아직 알 수 없어요. 명세서에 3.3%나 원천징수 표시가 있는지 확인해 보세요.`
+        : `${ym} ${employer}: 입력한 내용을 바탕으로 '${r.incomeTypeLabel}'로 봤어요.${estimated ? " (떼인 세금을 비워 3.3%로 계산했어요)" : ""}`;
+      상태저장(false);
+      전체화면그리기();
+    });
 
     // 앱 최초 시작
     이벤트초기화();
